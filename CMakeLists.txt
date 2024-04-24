@@ -22,6 +22,7 @@ endif()
 # Options
 option(TRITON_BUILD_TUTORIALS "Build C++ Triton tutorials" ON)
 option(TRITON_BUILD_PYTHON_MODULE "Build Python Triton bindings" OFF)
+option(TRITON_BUILD_UT "Build C++ Triton Unit Tests" ON)
 set(TRITON_CODEGEN_BACKENDS "" CACHE STRING "Enable different codegen backends")
 
 # Ensure Python3 vars are set correctly
@@ -277,4 +278,6 @@ endif()
 
 add_subdirectory(test)
 
-add_subdirectory(unittest)
+if(TRITON_BUILD_UT)
+  add_subdirectory(unittest)
+endif()
