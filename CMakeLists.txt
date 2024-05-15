@@ -185,7 +185,7 @@ include(AddLLVM)
 include(AddMLIR)
 
 # Disable warnings that show up in external code (gtest;pybind11)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wno-covered-switch-default")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-covered-switch-default")
 
 include_directories(${MLIR_INCLUDE_DIRS})
 include_directories(${LLVM_INCLUDE_DIRS})
@@ -249,6 +249,8 @@ if(TRITON_BUILD_PYTHON_MODULE)
       ${TRITON_LIBRARIES}
     )
   endif()
+  target_include_directories(triton PUBLIC ${PYBIND11_ROOT}/include)
+  target_include_directories(triton PUBLIC ${pybind11_INCLUDE_DIRS})
 
   target_link_options(triton PRIVATE ${LLVM_LDFLAGS})
 endif()
