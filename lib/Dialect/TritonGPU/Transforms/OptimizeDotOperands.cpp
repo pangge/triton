@@ -299,7 +299,7 @@ struct MMAV3UseRegOperand : public OpRewritePattern<DotOp> {
 
     Value newOperand =
         rewriter.create<ConvertLayoutOp>(dotOp.getLoc(), newTy, alloc.getSrc());
-    rewriter.modifyOpInPlace(dotOp, [&]() { dotOp.setOperand(0, newOperand); });
+    rewriter.updateRootInPlace(dotOp, [&]() { dotOp.setOperand(0, newOperand); });
     return success();
   }
 };

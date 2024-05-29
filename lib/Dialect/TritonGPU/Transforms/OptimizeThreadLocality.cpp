@@ -79,7 +79,7 @@ struct OptimizeReshapeLayoutPattern
     if (triton::gpu::isExpensiveView(viewOp.getSrc().getType(), newType))
       return failure();
     rewriter.setInsertionPointAfter(viewOp);
-    rewriter.modifyOpInPlace(viewOp, [&]() {
+    rewriter.updateRootInPlace(viewOp, [&]() {
       viewOp.getResult().setType(newType);
       viewOp.setEfficientLayout(true);
     });
