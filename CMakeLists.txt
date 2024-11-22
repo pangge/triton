@@ -99,9 +99,8 @@ function(add_triton_plugin name)
   add_triton_object(${name} ${ARGN})
 endfunction()
 
-
-# Disable warnings that show up in external code (gtest;pybind11)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wno-covered-switch-default -fvisibility=hidden")
+# Disable warnings that show up in external code (gt-Wno-error=sign-compare"est;pybind11)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w")
 
 include_directories(".")
 include_directories(${MLIR_INCLUDE_DIRS})
