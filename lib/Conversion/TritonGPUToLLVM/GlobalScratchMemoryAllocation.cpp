@@ -19,7 +19,7 @@ static int32_t roundUp(int32_t val, int32_t step) {
 static void allocateGMem(Operation *parentOp,
                          llvm::SetVector<Operation *> &callStack) {
   // Recursively visit any dependency functions
-  parentOp->walk([&](triton::CallOp call) {
+  parentOp->walk([&](CallOpInterface call) {
     auto callable = call.resolveCallable();
     if (!callable->hasAttr("ttg.global_scratch_memory_size")) {
       auto inserted = callStack.insert(parentOp);
@@ -43,7 +43,7 @@ static void allocateGMem(Operation *parentOp,
     if (auto alloc = dyn_cast<triton::gpu::GlobalScratchAllocOp>(op)) {
       nbytes = alloc.getNbytes();
       align = alloc.getAlignment();
-    } else if (auto callOp = dyn_cast<triton::CallOp>(op)) {
+    } else if (auto callOp = dyn_cast<CallOpInterface>(op)) {
       auto callable = callOp.resolveCallable();
       auto nbytes_attr = callable->getAttrOfType<IntegerAttr>(
           "ttg.global_scratch_memory_size");

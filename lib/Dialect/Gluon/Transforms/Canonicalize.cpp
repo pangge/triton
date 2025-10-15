@@ -28,6 +28,20 @@ struct Canonicalize : public gluon::impl::GluonCanonicalizeBase<Canonicalize> {
 };
 } // namespace
 
+SmallVector<RegisteredOperationName>
+getRegisteredOperationsByDialect(MLIRContext* context, StringRef dialectName) {
+  if (dialectName.empty())
+    return {};
+
+  SmallVector<RegisteredOperationName> filteredOps;
+  for (RegisteredOperationName op : context->getRegisteredOperations()) {
+    if (op.getDialect().getNamespace() == dialectName)
+      filteredOps.push_back(op);
+  }
+
+  return filteredOps;
+}
+
 void Canonicalize::runOnOperation() {
   MLIRContext *ctx = &getContext();
   RewritePatternSet patterns(&getContext());
@@ -39,13 +53,13 @@ void Canonicalize::runOnOperation() {
       patterns);
   ctx->getLoadedDialect<cf::ControlFlowDialect>()->getCanonicalizationPatterns(
       patterns);
-  for (mlir::RegisteredOperationName op : ctx->getRegisteredOperationsByDialect(
+  for (mlir::RegisteredOperationName op : getRegisteredOperationsByDialect(ctx,
            arith::ArithDialect::getDialectNamespace()))
     op.getCanonicalizationPatterns(patterns, ctx);
-  for (mlir::RegisteredOperationName op : ctx->getRegisteredOperationsByDialect(
+  for (mlir::RegisteredOperationName op : getRegisteredOperationsByDialect(ctx,
            scf::SCFDialect::getDialectNamespace()))
     op.getCanonicalizationPatterns(patterns, ctx);
-  for (mlir::RegisteredOperationName op : ctx->getRegisteredOperationsByDialect(
+  for (mlir::RegisteredOperationName op : getRegisteredOperationsByDialect(ctx,
            cf::ControlFlowDialect::getDialectNamespace()))
     op.getCanonicalizationPatterns(patterns, ctx);
   populateForOpDeadArgumentElimination(patterns);
@@ -59,5 +73,5 @@ void Canonicalize::runOnOperation() {
   ExpandDimsOp::getCanonicalizationPatterns(patterns, ctx);
   ttg::WarpSpecializeOp::getCanonicalizationPatterns(patterns, ctx);
 
-  (void)applyPatternsGreedily(getOperation(), std::move(patterns));
+  (void)mlir::applyPatternsAndFoldGreedily(getOperation(), std::move(patterns));
 }

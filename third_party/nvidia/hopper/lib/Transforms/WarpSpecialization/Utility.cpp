@@ -49,7 +49,7 @@ void labelParentOps(Operation *op) {
 SmallVector<AsyncTaskId> getNestedAsyncTaskIds(Operation *op) {
   SetVector<AsyncTaskId> asyncTaskIds;
   op->walk([&](Operation *curOp) {
-    asyncTaskIds.insert_range(getAsyncTaskIds(curOp));
+    asyncTaskIds.set_union(getAsyncTaskIds(curOp));
   });
   SmallVector<AsyncTaskId> res = asyncTaskIds.takeVector();
   llvm::sort(res);

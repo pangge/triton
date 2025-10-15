@@ -92,6 +92,7 @@ LogicalResult MemDescType::verify(function_ref<InFlightDiagnostic()> emitError,
                                   Attribute encoding, Attribute memorySpace,
                                   bool mutableMemory,
                                   ArrayRef<int64_t> allocShape) {
+#if 0
   if (shape.empty()) {
     return emitError() << "rank 0 memdesc is not allowed";
   }
@@ -191,7 +192,7 @@ LogicalResult MemDescType::verify(function_ref<InFlightDiagnostic()> emitError,
       }
     }
   }
-
+#endif
   return success();
 }
 

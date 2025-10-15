@@ -3,10 +3,15 @@
 #include "triton/Analysis/Utility.h"
 #include "triton/Dialect/TritonGPU/IR/Dialect.h"
 #include "triton/Dialect/TritonGPU/Transforms/Utility.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 namespace mlir {
 namespace triton {
 namespace gpu {
+
+inline RankedTensorType cloneWithEncoding(RankedTensorType type, ::mlir::Attribute encoding) {
+  return RankedTensorType::get(type.getShape(), type.getElementType(), encoding);
+}
 
 #define GEN_PASS_DEF_TRITONGPUCOALESCEASYNCCOPY
 #include "triton/Dialect/TritonGPU/Transforms/Passes.h.inc"
@@ -83,7 +88,9 @@ struct ClipAsyncCopySizePerThread
     // insert cvt's after src, mask, and other
     auto convertBlockLayout = [&](Value src, BlockedEncodingAttr enc) {
       auto ty = cast<RankedTensorType>(src.getType());
-      auto newTy = ty.cloneWithEncoding(enc);
+      //auto newTy = ty.cloneWithEncoding(enc);
+      auto newTy = cloneWithEncoding(ty, enc);
+
       auto cvt = rewriter.create<ConvertLayoutOp>(copyOp->getLoc(), newTy, src);
       return cvt.getResult();
     };
@@ -116,7 +123,7 @@ struct CoalesceAsyncCopyPass
     mlir::RewritePatternSet patterns(context);
     patterns.add<ClipAsyncCopySizePerThread>(context);
 
-    if (failed(applyPatternsGreedily(m, std::move(patterns))))
+    if (failed(mlir::applyPatternsAndFoldGreedily(m, std::move(patterns))))
       signalPassFailure();
   }
 };

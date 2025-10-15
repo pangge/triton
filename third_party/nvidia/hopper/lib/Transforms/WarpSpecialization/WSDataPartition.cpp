@@ -1,4 +1,6 @@
 #include "Utility.h"
+#include "mlir/IR/PatternMatch.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 #include "mlir/Transforms/RegionUtils.h"
 #include "nvidia/hopper/include/Transforms/Passes.h"
@@ -1289,7 +1291,7 @@ static bool doDeepCleanup(triton::FuncOp &funcOp,
                                             funcOp.getContext());
     scf::IfOp::getCanonicalizationPatterns(cleanUpPatterns,
                                            funcOp.getContext());
-    if (applyPatternsGreedily(funcOp, std::move(cleanUpPatterns)).failed()) {
+    if (applyPatternsAndFoldGreedily(funcOp, std::move(cleanUpPatterns)).failed()) {
       return false;
     }
   } while (!opsToDelete.empty());

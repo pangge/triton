@@ -19,6 +19,10 @@ namespace mlir {
 namespace triton {
 namespace gpu {
 
+inline RankedTensorType cloneWithEncoding(RankedTensorType type, ::mlir::Attribute encoding) {
+  return RankedTensorType::get(type.getShape(), type.getElementType(), encoding);
+}
+
 #define GEN_PASS_DEF_TRITONGPUCOALESCE
 #include "triton/Dialect/TritonGPU/Transforms/Passes.h.inc"
 
@@ -151,7 +155,7 @@ struct CoalescePass : public impl::TritonGPUCoalesceBase<CoalescePass> {
 
   static Type getNewType(Type type, Attribute encoding) {
     RankedTensorType tensorType = cast<RankedTensorType>(type);
-    return tensorType.cloneWithEncoding(encoding);
+    return cloneWithEncoding(tensorType, encoding);
   }
 
   void runOnOperation() override {

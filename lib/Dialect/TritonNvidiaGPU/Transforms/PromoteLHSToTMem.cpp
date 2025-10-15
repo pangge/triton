@@ -7,12 +7,18 @@
 #include "triton/Dialect/TritonNvidiaGPU/IR/Dialect.h"
 #include "triton/Dialect/TritonNvidiaGPU/Transforms/Passes.h"
 #include "triton/Tools/Sys/GetEnv.hpp"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 namespace ttg = mlir::triton::gpu;
 
 namespace mlir {
 namespace triton {
 namespace nvidia_gpu {
+
+inline RankedTensorType cloneWithEncoding(RankedTensorType type, ::mlir::Attribute encoding) {
+  return RankedTensorType::get(type.getShape(), type.getElementType(), encoding);
+}
+
 
 #define GEN_PASS_DEF_TRITONNVIDIAGPUPROMOTELHSTOTMEMPASS
 #include "triton/Dialect/TritonNvidiaGPU/Transforms/Passes.h.inc"
@@ -87,7 +93,7 @@ public:
     rewriter.setInsertionPointAfter(localAllocOp);
     if (newLayout != srcLayout) {
       auto ty = cast<RankedTensorType>(src.getType());
-      auto newTy = ty.cloneWithEncoding(newLayout);
+      auto newTy = cloneWithEncoding(ty, newLayout);
       src = rewriter.create<ttg::ConvertLayoutOp>(loc, newTy, src);
     }
     Value tMemAlloc = rewriter.create<TMEMAllocOp>(loc, lhsMemDescType, src);
@@ -112,7 +118,7 @@ public:
     RewritePatternSet patterns(context);
     patterns.add<LHSToTMem<TCGen5MMAOp>>(context);
     patterns.add<LHSToTMem<TCGen5MMAScaledOp>>(context);
-    if (applyPatternsGreedily(m, std::move(patterns)).failed()) {
+    if (mlir::applyPatternsAndFoldGreedily(m, std::move(patterns)).failed()) {
       signalPassFailure();
     }
   }

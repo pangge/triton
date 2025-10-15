@@ -119,12 +119,20 @@ LogicalResult WarpGroupDotOp::verify() {
 void WarpGroupDotOp::getEffects(
     SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>
         &effects) {
-  auto &a = getAMutable();
-  auto &b = getBMutable();
-  if (isa<MemDescType>(a.get().getType()))
-    effects.emplace_back(MemoryEffects::Read::get(), &a, SharedMemory::get());
-  if (isa<MemDescType>(b.get().getType()))
-    effects.emplace_back(MemoryEffects::Read::get(), &b, SharedMemory::get());
+  auto a = getA();
+  auto b = getB();
+  if (isa<MemDescType>(a.getType()))
+    effects.emplace_back(MemoryEffects::Read::get(), a,
+                         mlir::triton::gpu::SharedMemory::get());
+  if (isa<MemDescType>(b.getType()))
+    effects.emplace_back(MemoryEffects::Read::get(), b,
+                         mlir::triton::gpu::SharedMemory::get());
+  //auto &a = getAMutable();
+  //auto &b = getBMutable();
+  //if (isa<MemDescType>(a.get().getType()))
+  //  effects.emplace_back(MemoryEffects::Read::get(), &a, SharedMemory::get());
+  //if (isa<MemDescType>(b.get().getType()))
+  //  effects.emplace_back(MemoryEffects::Read::get(), &b, SharedMemory::get());
 }
 
 bool WarpGroupDotOp::needsPartialAccumulator() {
@@ -356,21 +364,21 @@ void TCGen5MMAOp::getEffects(
   // The op reads the accumulator if `useD` is not known to be false.
   APInt useD;
   if (!matchPattern(getUseD(), m_ConstantInt(&useD)) || !useD.isZero()) {
-    effects.emplace_back(MemoryEffects::Read::get(), &getDMutable(),
+    effects.emplace_back(MemoryEffects::Read::get(), getD(),
                          TensorMemory::get());
   }
-  effects.emplace_back(MemoryEffects::Write::get(), &getDMutable(),
+  effects.emplace_back(MemoryEffects::Write::get(), getD(),
                        TensorMemory::get());
 
   if (isa<SharedMemorySpaceAttr>(getA().getType().getMemorySpace())) {
-    effects.emplace_back(MemoryEffects::Read::get(), &getAMutable(),
+    effects.emplace_back(MemoryEffects::Read::get(), getA(),
                          SharedMemory::get());
 
   } else {
-    effects.emplace_back(MemoryEffects::Read::get(), &getAMutable(),
+    effects.emplace_back(MemoryEffects::Read::get(), getA(),
                          TensorMemory::get());
   }
-  effects.emplace_back(MemoryEffects::Read::get(), &getBMutable(),
+  effects.emplace_back(MemoryEffects::Read::get(), getB(),
                        SharedMemory::get());
 }
 
@@ -431,25 +439,25 @@ void TCGen5MMAScaledOp::getEffects(
   // The op reads the accumulator if `useD` is not known to be false.
   APInt useD;
   if (!matchPattern(getUseD(), m_ConstantInt(&useD)) || !useD.isZero()) {
-    effects.emplace_back(MemoryEffects::Read::get(), &getDMutable(),
+    effects.emplace_back(MemoryEffects::Read::get(), getD(),
                          TensorMemory::get());
   }
-  effects.emplace_back(MemoryEffects::Write::get(), &getDMutable(),
+  effects.emplace_back(MemoryEffects::Write::get(), getD(),
                        TensorMemory::get());
 
   if (isa<SharedMemorySpaceAttr>(getA().getType().getMemorySpace())) {
-    effects.emplace_back(MemoryEffects::Read::get(), &getAMutable(),
+    effects.emplace_back(MemoryEffects::Read::get(), getA(),
                          SharedMemory::get());
 
   } else {
-    effects.emplace_back(MemoryEffects::Read::get(), &getAMutable(),
+    effects.emplace_back(MemoryEffects::Read::get(), getA(),
                          TensorMemory::get());
   }
-  effects.emplace_back(MemoryEffects::Read::get(), &getBMutable(),
+  effects.emplace_back(MemoryEffects::Read::get(), getB(),
                        SharedMemory::get());
-  effects.emplace_back(MemoryEffects::Read::get(), &getAScaleMutable(),
+  effects.emplace_back(MemoryEffects::Read::get(), getAScale(),
                        TensorMemory::get());
-  effects.emplace_back(MemoryEffects::Read::get(), &getBScaleMutable(),
+  effects.emplace_back(MemoryEffects::Read::get(), getBScale(),
                        TensorMemory::get());
 }
 
@@ -687,10 +695,10 @@ LogicalResult TMEMCopyOp::verify() {
            << srcTy.getShape() << " must match destination shape "
            << dstTy.getShape();
 
-  if (getBarrier() && !isa<triton::gpu::SharedMemorySpaceAttr>(
-                          getBarrier().getType().getMemorySpace())) {
-    return emitOpError("The optional barrier should be a shared memory buffer");
-  }
+  //if (getBarrier() && !isa<triton::gpu::SharedMemorySpaceAttr>(
+  //                        getBarrier().getType().getMemorySpace())) {
+  //  return emitOpError("The optional barrier should be a shared memory buffer");
+  //}
   if (!getDst().getType().getMutableMemory()) {
     return emitOpError("Cannot copy into an immutable alloc");
   }

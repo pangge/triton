@@ -60,6 +60,40 @@
 
 using namespace mlir;
 
+namespace llvm {
+
+template <typename T, typename U>
+using enableif_int =
+    std::enable_if_t<std::is_integral_v<T> && std::is_integral_v<U>>;
+
+template <typename T, typename U, typename = enableif_int<T, U>>
+using common_sint =
+    std::common_type_t<std::make_signed_t<T>, std::make_signed_t<U>>;
+
+template <typename U, typename V>
+constexpr bool divideSignedWouldOverflow(U Numerator, V Denominator) {
+  return Numerator == std::numeric_limits<U>::min() && Denominator == -1;
+}
+
+/// Returns the integer ceil(Numerator / Denominator). Signed version.
+/// Overflow is explicitly forbidden with an assert.
+template <typename U, typename V, typename T = common_sint<U, V>>
+constexpr T divideCeilSigned(U Numerator, V Denominator) {
+  assert(Denominator && "Division by zero");
+  assert(!divideSignedWouldOverflow(Numerator, Denominator) &&
+         "Divide would overflow");
+  if (!Numerator)
+    return 0;
+  // C's integer division rounds towards 0.
+  T Bias = Denominator >= 0 ? 1 : -1;
+  bool SameSign = (Numerator >= 0) == (Denominator >= 0);
+  return SameSign ? (Numerator - Bias) / Denominator + 1
+                  : Numerator / Denominator;
+}
+
+}
+
+
 namespace tt = mlir::triton;
 
 namespace {
@@ -625,7 +659,7 @@ LogicalResult TritonIntegerRangeAnalysis::visitOperationHelper(
           return inferResultRangesMaxNonNegSigned(histOp, joinCallback);
         })
         .Default([&](auto) { llvm::report_fatal_error("unsupported op"); });
-    return success();
+    return ;//success();
   }
 
   SmallVector<IntegerValueRange> argIntValueRanges = llvm::map_to_vector(
@@ -645,7 +679,7 @@ LogicalResult TritonIntegerRangeAnalysis::visitOperationHelper(
     for (const auto &r : argIntValueRanges) {
       if (r.isUninitialized()) {
         setAllToEntryStates(resultsLattices);
-        return success();
+        return ;//success();
       }
       argConstIntRanges.push_back(r.getValue());
     }
@@ -663,7 +697,7 @@ LogicalResult TritonIntegerRangeAnalysis::visitOperationHelper(
           return inferResultRanges(&gatherOp, argConstIntRanges, joinCallback);
         })
         .Default([&](auto) { llvm::report_fatal_error("unsupported op"); });
-    return success();
+    return ;//success();
   }
 
   // TODO: It looks like inferResultRangesFromOptional does not handle bunch
@@ -672,11 +706,11 @@ LogicalResult TritonIntegerRangeAnalysis::visitOperationHelper(
   //
   if (auto inferrable = dyn_cast<InferIntRangeInterface>(op)) {
     inferrable.inferResultRangesFromOptional(argIntValueRanges, joinCallback);
-    return success();
+    return ;//success();
   }
 
   setAllToEntryStates(resultsLattices);
-  return success();
+  return ;//success();
 }
 
 void TritonIntegerRangeAnalysis::initializeFuncOp(tt::FuncOp op) {

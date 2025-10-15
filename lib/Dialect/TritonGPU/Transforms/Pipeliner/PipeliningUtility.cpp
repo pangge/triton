@@ -317,7 +317,7 @@ void mlir::triton::resolveMaskOp(ModuleOp moduleOp,
       moduleOp.getContext()->getLoadedDialect<arith::ArithDialect>();
   RewritePatternSet patterns(moduleOp.getContext());
   arithDialect->getCanonicalizationPatterns(patterns);
-  if (mlir::applyPatternsGreedily(moduleOp, std::move(patterns)).failed())
+  if (mlir::applyPatternsAndFoldGreedily(moduleOp, std::move(patterns)).failed())
     return llvm::report_fatal_error("Failed to canonicalize the IR");
 
   // Prune all the statically dead mask ops in the epilogue. This is a

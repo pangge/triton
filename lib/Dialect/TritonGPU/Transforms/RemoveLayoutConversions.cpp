@@ -34,6 +34,10 @@ namespace mlir::triton::gpu {
 
 namespace {
 
+RankedTensorType cloneWithEncoding(RankedTensorType type, ::mlir::Attribute encoding) {
+  return RankedTensorType::get(type.getShape(), type.getElementType(), encoding);
+}
+
 // -----------------------------------------------------------------------------
 //
 // -----------------------------------------------------------------------------
@@ -469,7 +473,8 @@ Value LayoutPropagation::getValueAs(Value value, Attribute encoding) {
       return rewrittenValue;
     OpBuilder rewriter(value.getContext());
     rewriter.setInsertionPointAfterValue(rewrittenValue);
-    auto tmpType = tensorType.cloneWithEncoding(encoding);
+    //auto tmpType = tensorType.cloneWithEncoding(encoding);
+    auto tmpType = cloneWithEncoding(tensorType, encoding);
     Value converted = rewriter.create<ConvertLayoutOp>(value.getLoc(), tmpType,
                                                        rewrittenValue);
     // TODO: we could cache the conversion.
@@ -510,7 +515,8 @@ Operation *LayoutPropagation::cloneElementwise(OpBuilder &rewriter,
     auto origType = dyn_cast<RankedTensorType>(op->getResult(i).getType());
     if (!origType)
       continue;
-    auto newType = origType.cloneWithEncoding(encoding);
+    //auto newType = origType.cloneWithEncoding(encoding);
+    auto newType = cloneWithEncoding(origType, encoding);
     newOp->getResult(i).setType(newType);
   }
   return newOp;
@@ -573,7 +579,8 @@ Operation *LayoutPropagation::rewriteWhileOp(scf::WhileOp whileOp) {
       continue;
     }
     auto origType = dyn_cast<RankedTensorType>(ret.getType());
-    auto newType = origType.cloneWithEncoding(it->second.encodings[0]);
+    //auto newType = origType.cloneWithEncoding(it->second.encodings[0]);
+    auto newType = cloneWithEncoding(origType, it->second.encodings[0]);
     returnTypes.push_back(newType);
   }
 
@@ -623,7 +630,8 @@ Operation *LayoutPropagation::rewriteIfOp(scf::IfOp ifOp) {
       continue;
     auto origType = cast<RankedTensorType>(ifOp->getResult(i).getType());
     Attribute encoding = *(it->second.encodings.begin());
-    newResultTypes[i] = origType.cloneWithEncoding(encoding);
+    //newResultTypes[i] = origType.cloneWithEncoding(encoding);
+    newResultTypes[i] = cloneWithEncoding(origType, encoding);
   }
   auto newIfOp = rewriter.create<scf::IfOp>(ifOp.getLoc(), newResultTypes,
                                             ifOp.getCondition(), true, true);
@@ -719,7 +727,9 @@ Operation *LayoutPropagation::rewriteOp(Operation *op) {
       srcEncoding = *(it->second.encodings.begin());
     Value src = getValueAs(convertOp.getSrc(), srcEncoding);
     auto tensorType = cast<RankedTensorType>(op->getResult(0).getType());
-    auto newType = tensorType.cloneWithEncoding(encoding);
+    //auto newType = tensorType.cloneWithEncoding(encoding);
+    auto newType = cloneWithEncoding(tensorType, encoding);
+
     auto cvt = rewriter.create<ConvertLayoutOp>(op->getLoc(), newType, src);
     map(op->getResult(0), cvt.getResult());
     return cvt.getOperation();
@@ -727,7 +737,9 @@ Operation *LayoutPropagation::rewriteOp(Operation *op) {
   if (canFoldIntoConversion(op, encoding)) {
     Operation *newOp = rewriter.clone(*op);
     auto tensorType = cast<RankedTensorType>(op->getResult(0).getType());
-    auto newType = tensorType.cloneWithEncoding(encoding);
+    //auto newType = tensorType.cloneWithEncoding(encoding);
+    auto newType = cloneWithEncoding(tensorType, encoding);
+
     auto cvt = rewriter.create<ConvertLayoutOp>(op->getLoc(), newType,
                                                 newOp->getResult(0));
     map(op->getResult(0), cvt.getResult());
@@ -887,7 +899,9 @@ void LayoutRematerialization::rewriteSlice(SetVector<Value> &slice,
           assert(it != layout.end());
 
           auto oldType = cast<RankedTensorType>(res.getType());
-          auto newType = oldType.cloneWithEncoding(it->second);
+          //auto newType = oldType.cloneWithEncoding(it->second);
+	  auto newType = cloneWithEncoding(oldType, it->second);
+
           newTypes.push_back(newType);
         }
       }
@@ -925,7 +939,9 @@ void LayoutRematerialization::rewriteSlice(SetVector<Value> &slice,
     if (isa<arith::ConstantOp>(op)) {
       Operation *newOp = builder.clone(*op);
       auto tensorType = cast<RankedTensorType>(op->getResult(0).getType());
-      auto newType = tensorType.cloneWithEncoding(layout[op->getResult(0)]);
+      //auto newType = tensorType.cloneWithEncoding(layout[op->getResult(0)]);
+      auto newType = cloneWithEncoding(tensorType, layout[op->getResult(0)]);
+
       auto cvt = builder.create<ConvertLayoutOp>(op->getLoc(), newType,
                                                  newOp->getResult(0));
       mapping.map(op->getResult(0), cvt.getResult());
@@ -938,8 +954,10 @@ void LayoutRematerialization::rewriteSlice(SetVector<Value> &slice,
       auto it = layout.find(old);
       if (it == layout.end())
         continue;
-      auto newType =
-          cast<RankedTensorType>(old.getType()).cloneWithEncoding(it->second);
+      //auto newType =
+      //    cast<RankedTensorType>(old.getType()).cloneWithEncoding(it->second);
+      auto oldT = cast<RankedTensorType>(old.getType());
+      auto newType = cloneWithEncoding(oldT, it->second);
       newV.setType(newType);
       addRematValue(old, it->second, newV);
     }
@@ -1070,7 +1088,7 @@ static bool isExpensiveMathOp(Operation *op) {
   // These operations are either multiple instructions or have throughput
   // lower than 16 according to the arithmetic instructions table in:
   // https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#arithmetic-instructions
-  return isa<arith::DivFOp, math::ErfcOp, math::SinhOp, math::CoshOp,
+  return isa<arith::DivFOp, /*math::ErfcOp, */math::SinhOp, math::CoshOp,
              math::TanhOp, math::AsinhOp, math::AcoshOp, math::AtanhOp,
              math::CtPopOp, math::CountLeadingZerosOp,
              math::CountTrailingZerosOp, math::ExpOp, math::Exp2Op,
@@ -1358,7 +1376,9 @@ void LayoutRematerialization::hoistConvertDotOperand(
     auto type = dyn_cast<RankedTensorType>(loadOp->getResult(0).getType());
     if (!type)
       continue;
-    auto newType = type.cloneWithEncoding(layout[loadOp->getResult(0)]);
+    //auto newType = type.cloneWithEncoding(layout[loadOp->getResult(0)]);
+    auto newType = cloneWithEncoding(type, layout[loadOp->getResult(0)]);
+
     auto newConvertOp = builder.create<ConvertLayoutOp>(
         convertOp.getLoc(), newType, loadOp->getResult(0));
     mapping.map(loadOp->getResult(0), newConvertOp.getResult());
@@ -1460,15 +1480,20 @@ void LayoutRematerialization::hoistConvertOnTopOfExtOrBroadcast(
   OpBuilder builder(extOrBroadcastOp);
   auto tensorType =
       cast<RankedTensorType>(extOrBroadcastOp->getOperand(0).getType());
-  auto newType = tensorType.cloneWithEncoding(srcEncoding);
+  //auto newType = tensorType.cloneWithEncoding(srcEncoding);
+  auto newType = cloneWithEncoding(tensorType, srcEncoding);
+
   auto newConvertOp = builder.create<ConvertLayoutOp>(
       convertOp.getLoc(), newType, extOrBroadcastOp->getOperand(0));
   Operation *newExtOrBroadcast = builder.clone(*extOrBroadcastOp);
   newExtOrBroadcast->setOperand(0, newConvertOp.getResult());
   auto oldExtOrBroadcastType =
       cast<RankedTensorType>(extOrBroadcastOp->getResult(0).getType());
+  //Type newExtOrBroadcastType =
+  //    oldExtOrBroadcastType.cloneWithEncoding(dstEncoding);
   Type newExtOrBroadcastType =
-      oldExtOrBroadcastType.cloneWithEncoding(dstEncoding);
+      cloneWithEncoding(oldExtOrBroadcastType, dstEncoding);
+
   newExtOrBroadcast->getResult(0).setType(newExtOrBroadcastType);
   IRMapping mapping;
   mapping.map(extOrBroadcastOp->getResult(0), newExtOrBroadcast->getResult(0));
@@ -1574,7 +1599,9 @@ void LayoutRematerialization::hoistConvertIntoConditionals(
   IRMapping mapping;
   auto hoistRemat = [&](OpBuilder &b, Value v, Attribute encoding) {
     auto tensorType = cast<RankedTensorType>(v.getType());
-    auto newType = tensorType.cloneWithEncoding(encoding);
+    //auto newType = tensorType.cloneWithEncoding(encoding);
+    auto newType = cloneWithEncoding(tensorType, encoding);
+
     Value newCvt = b.create<ConvertLayoutOp>(convertOp.getLoc(), newType, v);
 
     mapping.map(v, newCvt);
@@ -1628,7 +1655,7 @@ public:
     ModuleOp m = getOperation();
     RewritePatternSet cleanUpPatterns(context);
     ConvertLayoutOp::getCanonicalizationPatterns(cleanUpPatterns, context);
-    if (applyPatternsGreedily(m, std::move(cleanUpPatterns)).failed()) {
+    if (mlir::applyPatternsAndFoldGreedily(m, std::move(cleanUpPatterns)).failed()) {
       signalPassFailure();
     }
 
@@ -1684,7 +1711,7 @@ public:
     scf::ForOp::getCanonicalizationPatterns(cleanUpPatterns2, context);
     scf::IfOp::getCanonicalizationPatterns(cleanUpPatterns2, context);
     ConvertLayoutOp::getCanonicalizationPatterns(cleanUpPatterns2, context);
-    if (applyPatternsGreedily(m, std::move(cleanUpPatterns2)).failed()) {
+    if (mlir::applyPatternsAndFoldGreedily(m, std::move(cleanUpPatterns2)).failed()) {
       signalPassFailure();
     }
     LLVM_DEBUG({

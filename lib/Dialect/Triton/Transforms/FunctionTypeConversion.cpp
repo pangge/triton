@@ -25,7 +25,7 @@ struct CallOpConversion : public OpConversionPattern<CallOp> {
   using OpConversionPattern<CallOp>::OpConversionPattern;
 
   LogicalResult
-  matchAndRewrite(CallOp callOp, OneToNOpAdaptor adaptor,
+  matchAndRewrite(CallOp callOp, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     llvm::SmallVector<std::size_t> resultReplacementGrouping;
     llvm::SmallVector<Type> convertedResults;
@@ -52,7 +52,8 @@ struct CallOpConversion : public OpConversionPattern<CallOp> {
       offset += groupSize;
     }
 
-    rewriter.replaceOpWithMultiple(callOp, replacements);
+    //rewriter.replaceOpWithMultiple(callOp, replacements);
+    replaceOpWithMultiple(rewriter, callOp, std::move(replacements));
     return success();
   }
 };
@@ -61,7 +62,7 @@ struct ReturnOpConversion : public OpConversionPattern<ReturnOp> {
   using OpConversionPattern<ReturnOp>::OpConversionPattern;
 
   LogicalResult
-  matchAndRewrite(ReturnOp returnOp, OneToNOpAdaptor adaptor,
+  matchAndRewrite(ReturnOp returnOp, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto newReturnOp = rewriter.create<ReturnOp>(
         returnOp->getLoc(), flattenValues(adaptor.getOperands()));
@@ -158,6 +159,22 @@ void populateFunctionTypeConversions(const TypeConverter &converter,
   patterns.add<FunctionOpInterfaceSignatureConversion>(
       triton::FuncOp::getOperationName(), context, converter);
   patterns.add<CallOpConversion, ReturnOpConversion>(converter, context);
+}
+
+void replaceOpWithMultiple(PatternRewriter &rewriter,
+    Operation *op, SmallVector<SmallVector<Value>> &&newValues) {
+  assert(op->getNumResults() == newValues.size() &&
+         "incorrect # of replacement values");
+  // If the current insertion point is before the erased operation, we adjust
+  // the insertion point to be after the operation.
+  if (rewriter.getInsertionPoint() == op->getIterator())
+    rewriter.setInsertionPointAfter(op);
+
+  SmallVector<Value> values;
+  for (auto &vec : newValues) {
+    values.append(vec.begin(), vec.end());
+  }
+  rewriter.replaceOp(op, ValueRange(values));
 }
 
 } // namespace mlir::triton

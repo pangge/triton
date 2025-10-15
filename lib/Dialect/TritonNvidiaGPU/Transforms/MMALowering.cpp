@@ -5,6 +5,7 @@
 #include "triton/Dialect/Triton/IR/Utility.h"
 #include "triton/Dialect/TritonNvidiaGPU/IR/Dialect.h"
 #include "triton/Dialect/TritonNvidiaGPU/Transforms/Passes.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 namespace ttg = mlir::triton::gpu;
 
@@ -179,7 +180,7 @@ public:
                                 PatternRewriter &rewriter) const override {
     auto [commitOps, predicates] = collectCommitOpsAfter(op);
     if (commitOps.size() == 0) {
-      return llvm::failure();
+      return failure();
     }
     for (auto [commit, pred] : llvm::zip(commitOps, predicates)) {
       if (!pred) {
@@ -212,7 +213,7 @@ public:
     patterns.add<SyncMMALowering, TCGen5MMAScaleSharedToTmemConversion,
                  MergeCommitIntoMMA>(context);
 
-    if (applyPatternsGreedily(m, std::move(patterns)).failed())
+    if (mlir::applyPatternsAndFoldGreedily(m, std::move(patterns)).failed())
       signalPassFailure();
   }
 };

@@ -346,15 +346,19 @@ LogicalResult lowerLdStMatrix(
 
   // Instruction params
   auto layout = transpose ? NVVM::MMALayout::col : NVVM::MMALayout::row;
-  auto eltType = transpose && bitwidth == 8 ? NVVM::LdStMatrixEltType::B8
-                                            : NVVM::LdStMatrixEltType::B16;
+  auto eltType = transpose && bitwidth == 8 ;//? NVVM::LdStMatrixEltType::B8
+                                            //: NVVM::LdStMatrixEltType::B16;
   int m = fullTile.getOutDimSize(kAddr);
-  int n = fullTile.getOutDimSize(kOffset) * bitwidth /
-          (eltType == NVVM::LdStMatrixEltType::B8 ? 8 : 16);
+  int n = 8;//fullTile.getOutDimSize(kOffset) * bitwidth /
+          //(eltType == NVVM::LdStMatrixEltType::B8 ? 8 : 16);
   if (transpose) {
     std::swap(m, n);
   }
-  auto shape = NVVM::LdStMatrixShapeAttr::get(ctx, m, n);
+  //auto shape = NVVM::LdStMatrixShapeAttr::get(ctx, m, n);
+  auto shape = StringAttr::get(ctx, "");
+
+  // Elements per op
+
 
   // Elements per op
   auto elemsPerInstr = fullTileVec.getInDimSize(kReg);
@@ -371,7 +375,7 @@ LogicalResult lowerLdStMatrix(
       auto regIdxAddI8 = regIdxAdd * (bitwidth / 8);
       Value innerOffset = b.add(offset, b.i32_val(regIdxAddI8));
       auto vecAddr = b.gep(smemPtrTy, i8_ty, smemBase, innerOffset,
-                           LLVM::GEPNoWrapFlags::inbounds);
+                           /*LLVM::GEPNoWrapFlags::inbounds*/0);
       if (isStore) {
         // Pack into vector of i32
         SmallVector<Value> inputs;
@@ -383,8 +387,8 @@ LogicalResult lowerLdStMatrix(
           }
           inputs.push_back(b.bitcast(input, i32_ty));
         }
-        rewriter.create<NVVM::StMatrixOp>(loc, vecAddr, inputs, layout, shape,
-                                          eltType);
+       // rewriter.create<NVVM::StMatrixOp>(loc, vecAddr, inputs, layout, shape,
+       //                                   eltType);
       } else {
         unsigned numLdMatrix = elemsPerInstr / elemsPerVec;
         assert(numLdMatrix > 0 &&
@@ -396,7 +400,7 @@ LogicalResult lowerLdStMatrix(
                       ctx, SmallVector<Type>(numLdMatrix, i32_ty)));
         auto res = rewriter
                        .create<NVVM::LdMatrixOp>(loc, ldResultTy, vecAddr, vec,
-                                                 layout, shape, eltType)
+                                                 layout/*, shape, eltType*/)
                        .getResult();
         // Extract result into srcVals
         for (int j = 0; j < elemsPerInstr / elemsPerVec; j++) {

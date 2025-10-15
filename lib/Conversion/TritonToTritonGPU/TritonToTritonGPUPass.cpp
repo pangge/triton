@@ -21,6 +21,10 @@ using namespace mlir;
 using namespace mlir::triton;
 using namespace mlir::triton::gpu;
 
+RankedTensorType cloneWithEncoding(RankedTensorType type, ::mlir::Attribute encoding) {
+  return RankedTensorType::get(type.getShape(), type.getElementType(), encoding);
+}
+
 // pass named attrs (e.g., tt.contiguity) from Triton to Triton
 static void addNamedAttrs(Operation *op, DictionaryAttr dictAttrs) {
   for (const NamedAttribute attr : dictAttrs.getValue())
@@ -171,7 +175,7 @@ struct TritonExpandDimsPattern
     // convert operand to slice of return type
     Attribute newArgEncoding = triton::gpu::SliceEncodingAttr::get(
         getContext(), op.getAxis(), retEncoding);
-    RankedTensorType newArgType = argType.cloneWithEncoding(newArgEncoding);
+    RankedTensorType newArgType = cloneWithEncoding(argType, newArgEncoding);
     // construct new op
     auto newSrc = rewriter.create<triton::gpu::ConvertLayoutOp>(
         op.getLoc(), newArgType, adaptor.getSrc());
@@ -236,7 +240,7 @@ struct TritonDotPattern : public OpConversionPattern<triton::DotOp> {
     Attribute dEncoding = triton::gpu::BlockedEncodingAttr::get(
         getContext(), origShape, retSizePerThread, retOrder, numWarps,
         threadsPerWarp, numCTAs);
-    RankedTensorType retType = origType.cloneWithEncoding(dEncoding);
+    RankedTensorType retType = cloneWithEncoding(origType, dEncoding);
     // a & b must be of smem layout
     auto aType = cast<RankedTensorType>(adaptor.getA().getType());
     auto bType = cast<RankedTensorType>(adaptor.getB().getType());
@@ -252,13 +256,13 @@ struct TritonDotPattern : public OpConversionPattern<triton::DotOp> {
     if (!mlir::isa<triton::gpu::DotOperandEncodingAttr>(aEncoding)) {
       Attribute encoding = triton::gpu::DotOperandEncodingAttr::get(
           getContext(), 0, dEncoding, aEltType);
-      auto dstType = aType.cloneWithEncoding(encoding);
+      auto dstType = cloneWithEncoding(aType, encoding);
       a = rewriter.create<triton::gpu::ConvertLayoutOp>(a.getLoc(), dstType, a);
     }
     if (!mlir::isa<triton::gpu::DotOperandEncodingAttr>(bEncoding)) {
       Attribute encoding = triton::gpu::DotOperandEncodingAttr::get(
           getContext(), 1, dEncoding, bEltType);
-      auto dstType = bType.cloneWithEncoding(encoding);
+      auto dstType = cloneWithEncoding(bType, encoding);
       b = rewriter.create<triton::gpu::ConvertLayoutOp>(b.getLoc(), dstType, b);
     }
     c = rewriter.create<triton::gpu::ConvertLayoutOp>(c.getLoc(), retType, c);
@@ -308,7 +312,7 @@ struct TritonCatPattern : public OpConversionPattern<triton::CatOp> {
         triton::gpu::BlockedEncodingAttr::get(
             getContext(), newRetSizePerThread, retThreadsPerWarp,
             retWarpsPerCTA, retOrder, retEncoding.getCTALayout());
-    auto newRetType = retType.cloneWithEncoding(newRetEncoding);
+    auto newRetType = cloneWithEncoding(retType, newRetEncoding);
     addNamedAttrs(rewriter.replaceOpWithNewOp<triton::CatOp>(
                       op, newRetType, adaptor.getOperands()),
                   adaptor.getAttributes());
@@ -381,7 +385,7 @@ struct TritonSplitOpPattern : public OpConversionPattern<triton::SplitOp> {
                              append(defaultEnc.getCTAsPerCGA(), 1),
                              append(defaultEnc.getCTASplitNum(), 1),
                              prepend(defaultEnc.getCTAOrder(), rank - 1)));
-      srcTy = srcTy.cloneWithEncoding(srcEnc);
+      srcTy = cloneWithEncoding(srcTy, srcEnc);
       src = rewriter.create<ConvertLayoutOp>(op.getLoc(), srcTy, src);
     }
 
@@ -420,7 +424,7 @@ struct TritonBroadcastPattern
     auto srcEncoding = srcType.getEncoding();
     if (!srcEncoding)
       return failure();
-    Type retType = op.getType().cloneWithEncoding(srcEncoding);
+    Type retType = cloneWithEncoding(op.getType(), srcEncoding);
     // Type retType = this->getTypeConverter()->convertType(op.getType());
     addNamedAttrs(rewriter.replaceOpWithNewOp<triton::BroadcastOp>(
                       op, retType, adaptor.getOperands()),
@@ -508,7 +512,7 @@ public:
     // Convert just the entry block. The remaining unstructured control flow is
     // converted by br patterns.
     if (!newOp.getBody().empty())
-      rewriter.applySignatureConversion(&newOp.getBody().front(), result,
+      rewriter.applySignatureConversion(&newOp.getBody(), result,
                                         converter);
     return success();
   }

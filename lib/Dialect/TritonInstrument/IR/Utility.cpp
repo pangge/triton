@@ -56,7 +56,7 @@ RankedTensorType getIntTensorType(Region *region, ArrayRef<int64_t> shape,
   return RankedTensorType::get(shape, elType, encoding);
 }
 
-Value createBufferPointersTensor(ImplicitLocOpBuilder &builder, MemType memType,
+Value createBufferPointersTensor(ccw::ImplicitLocOpBuilder &builder, MemType memType,
                                  SmallVector<int32_t> values) {
   int64_t size = values.size();
   assert(llvm::isPowerOf2_64(size) && "Expected power of 2");
@@ -66,7 +66,7 @@ Value createBufferPointersTensor(ImplicitLocOpBuilder &builder, MemType memType,
                                                       memType);
 }
 
-Value createInitializedScratchMemory(ImplicitLocOpBuilder &b,
+Value createInitializedScratchMemory(ccw::ImplicitLocOpBuilder &b,
                                      TypedValue<RankedTensorType> tensor) {
   Type elType = tensor.getType().getElementType();
   int elSize = elType.getIntOrFloatBitWidth() / 8;
@@ -78,7 +78,7 @@ Value createInitializedScratchMemory(ImplicitLocOpBuilder &b,
   return alloc;
 }
 
-Value createZeroInitStateTensor(ImplicitLocOpBuilder &b, int m, int n,
+Value createZeroInitStateTensor(ccw::ImplicitLocOpBuilder &b, int m, int n,
                                 int bitWidth) {
   SmallVector<int64_t> shape = {m};
   if (n > 0) {
@@ -206,7 +206,7 @@ unsigned getSubBufferSize(TMEMAllocOp op) {
   return numCols / numSubBuffers;
 }
 
-Value createLockVariable(ImplicitLocOpBuilder &b) {
+Value createLockVariable(ccw::ImplicitLocOpBuilder &b) {
   Type ptrType = triton::getPointerType(b.getI32Type());
   auto alloc = b.create<GlobalScratchAllocOp>(ptrType, 4, 4);
   Value zero = b.create<arith::ConstantOp>(b.getLoc(), b.getI32Type(),
@@ -364,7 +364,7 @@ void AuxDataMap::populateAndPassToWarpSpecialize(ModuleOp module) {
   assert(entryPoint);
   Region *entryRegion = &entryPoint.getBody();
 
-  ImplicitLocOpBuilder b(entryPoint.getLoc(), entryPoint);
+  ccw::ImplicitLocOpBuilder b(entryPoint.getLoc(), entryPoint);
   b.setInsertionPointToStart(&entryPoint.getBody().front());
 
   for (MemType memType : {MemType::SHARED_MEM, MemType::TENSOR_MEM}) {
@@ -375,7 +375,7 @@ void AuxDataMap::populateAndPassToWarpSpecialize(ModuleOp module) {
     buffers[iMemType][entryRegion] = {
         createBufferPointersTensor(b, memType, bufValues[iMemType])};
     createInWarpSpecialize(
-        entryPoint, buffers[iMemType], [&](ImplicitLocOpBuilder &b) {
+        entryPoint, buffers[iMemType], [&](ccw::ImplicitLocOpBuilder &b) {
           return AuxDataMap::RegionToValueMap::ValueType{
               createBufferPointersTensor(b, memType, bufValues[iMemType])};
         });
@@ -397,7 +397,7 @@ void AuxDataMap::populateAndPassToWarpSpecialize(ModuleOp module) {
     // Barriers allocations are in shared memory
     barriers[entryRegion] = {
         createBufferPointersTensor(b, MemType::SHARED_MEM, barrierValues)};
-    createInWarpSpecialize(entryPoint, barriers, [&](ImplicitLocOpBuilder &b) {
+    createInWarpSpecialize(entryPoint, barriers, [&](ccw::ImplicitLocOpBuilder &b) {
       return AuxDataMap::RegionToValueMap::ValueType{
           createBufferPointersTensor(b, MemType::SHARED_MEM, barrierValues)};
     });
@@ -550,11 +550,11 @@ void AuxDataMap::passToWarpSpecialize(
 
 void AuxDataMap::createInWarpSpecialize(
     FuncOp func, RegionToValueMap &map,
-    std::function<RegionToValueMap::ValueType(ImplicitLocOpBuilder &)>
+    std::function<RegionToValueMap::ValueType(ccw::ImplicitLocOpBuilder &)>
         createFn) {
   func.walk([&](WarpSpecializeOp op) {
     for (Region *region : op.getPartitionRegions()) {
-      ImplicitLocOpBuilder b(region->getLoc(), region);
+      ccw::ImplicitLocOpBuilder b(region->getLoc(), region);
       b.setInsertionPointToStart(&region->getBlocks().front());
       map[region] = createFn(b);
     }

@@ -1,4 +1,5 @@
 #include "triton/Dialect/Triton/Transforms/ArithTypeConversion.h"
+#include "triton/Dialect/Triton/Transforms/FunctionTypeConversion.h"
 
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/SCF/IR/SCF.h"
@@ -6,13 +7,15 @@
 #include "mlir/Support/LLVM.h"
 #include "mlir/Transforms/DialectConversion.h"
 
+using namespace ::mlir::triton;
+
 namespace {
 
 struct RewriteArithSelectOp : mlir::OpConversionPattern<mlir::arith::SelectOp> {
   using mlir::OpConversionPattern<mlir::arith::SelectOp>::OpConversionPattern;
 
   mlir::LogicalResult
-  matchAndRewrite(mlir::arith::SelectOp op, OneToNOpAdaptor adaptor,
+  matchAndRewrite(mlir::arith::SelectOp op, OpAdaptor adaptor,
                   mlir::ConversionPatternRewriter &rewriter) const override {
     // Note we're replacing the select op with an if op because we are
     // converting one value into many values.
@@ -33,7 +36,8 @@ struct RewriteArithSelectOp : mlir::OpConversionPattern<mlir::arith::SelectOp> {
     }
 
     // Replace the old operation results
-    rewriter.replaceOpWithMultiple(op, {newIf->getResults()});
+    // rewriter.replaceOpWithMultiple(op, {newIf->getResults()});
+    replaceOpWithMultiple(rewriter, op, {newIf->getResults()});
 
     return mlir::success();
   }

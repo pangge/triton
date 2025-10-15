@@ -236,13 +236,13 @@ class ClusterCTAIdOpPattern : public OpRewritePattern<ttn::ClusterCTAIdOp> {
     auto a0 = rewriter.create<NVVM::BlockInClusterIdXOp>(loc, i32_ty);
     auto a1 = rewriter.create<NVVM::BlockInClusterIdYOp>(loc, i32_ty);
     auto a2 = rewriter.create<NVVM::BlockInClusterIdZOp>(loc, i32_ty);
-    auto a3 = rewriter.create<NVVM::ClusterDimBlocksXOp>(loc, i32_ty);
-    auto a4 = rewriter.create<NVVM::ClusterDimBlocksYOp>(loc, i32_ty);
-    auto p1 = rewriter.create<LLVM::MulOp>(loc, a2, a4);
-    auto s1 = rewriter.create<LLVM::AddOp>(loc, a1, p1);
-    auto p2 = rewriter.create<LLVM::MulOp>(loc, s1, a3);
-    auto res = rewriter.create<LLVM::AddOp>(loc, a0, p2);
-    rewriter.replaceOp(op, res);
+    //auto a3 = rewriter.create<NVVM::ClusterDimBlocksXOp>(loc, i32_ty);
+    //auto a4 = rewriter.create<NVVM::ClusterDimBlocksYOp>(loc, i32_ty);
+    //auto p1 = rewriter.create<LLVM::MulOp>(loc, a2, a4);
+    //auto s1 = rewriter.create<LLVM::AddOp>(loc, a1, p1);
+    //auto p2 = rewriter.create<LLVM::MulOp>(loc, s1, a3);
+    //auto res = rewriter.create<LLVM::AddOp>(loc, a0, p2);
+    //rewriter.replaceOp(op, res);
     return success();
   }
 };
@@ -633,7 +633,7 @@ public:
     patterns.add<ClusterCTAIdOpPattern, WGMMAOpPattern, LoadAcquireOpPattern,
                  WGMMAWaitGroupOpPattern, WarpIdOpPattern>(context);
 
-    if (applyPatternsGreedily(mod, std::move(patterns)).failed())
+    if (applyPatternsAndFoldGreedily(mod, std::move(patterns)).failed())
       signalPassFailure();
 
     lowerTensorMemoryAlloc(mod);

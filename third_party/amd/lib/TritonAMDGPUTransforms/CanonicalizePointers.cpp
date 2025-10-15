@@ -661,7 +661,8 @@ public:
         outType.getShape(), fatPtrOffset.getType(), outType.getEncoding());
     tt::SplatOp offset = rewriter.create<tt::SplatOp>(
         splatOp.getLoc(), newOffsetType, fatPtrOffset);
-    rewriter.replaceOpWithMultiple(splatOp, {{fatPtrBase, offset}});
+    //rewriter.replaceOpWithMultiple(splatOp, {{fatPtrBase, offset}});
+    replaceOpWithMultiple(rewriter, splatOp, {{fatPtrBase, offset}});
     fatPtrs[{fatPtrBase, offset}] = fatPtrs.at({fatPtrBase, fatPtrOffset});
 
     return success();
@@ -701,7 +702,8 @@ public:
         outType.getShape(), offsetType.getElementType(), outType.getEncoding());
     tt::BroadcastOp newOffset = rewriter.create<tt::BroadcastOp>(
         broadcastOp.getLoc(), newOffsetType, fatPtrOffset);
-    rewriter.replaceOpWithMultiple(broadcastOp, {{fatPtrBase, newOffset}});
+    //rewriter.replaceOpWithMultiple(broadcastOp, {{fatPtrBase, newOffset}});
+    replaceOpWithMultiple(rewriter, broadcastOp, {{fatPtrBase, newOffset}});
     fatPtrs[{fatPtrBase, newOffset}] = fatPtrs.at({fatPtrBase, fatPtrOffset});
     return success();
   }
@@ -763,7 +765,9 @@ public:
           curLoc, fatPtrBase.getType(), fatPtrBase, origOffset);
       doSetDiscardableAttrs(newAddPtrOp);
 
-      rewriter.replaceOpWithMultiple(addPtrOp, {{newAddPtrOp, fatPtrOffset}});
+      //rewriter.replaceOpWithMultiple(addPtrOp, {{newAddPtrOp, fatPtrOffset}});
+      replaceOpWithMultiple(rewriter, addPtrOp, {{newAddPtrOp, fatPtrOffset}});
+
       fatPtrs[{newAddPtrOp, fatPtrOffset}] =
           fatPtrs.at({fatPtrBase, fatPtrOffset});
       return success();
@@ -779,7 +783,9 @@ public:
           curLoc, fatPtrBase.getType(), fatPtrBase, *scalarConst);
       doSetDiscardableAttrs(newAddPtrOp);
 
-      rewriter.replaceOpWithMultiple(addPtrOp, {{newAddPtrOp, fatPtrOffset}});
+      //rewriter.replaceOpWithMultiple(addPtrOp, {{newAddPtrOp, fatPtrOffset}});
+      replaceOpWithMultiple(rewriter, addPtrOp, {{newAddPtrOp, fatPtrOffset}});
+
       // If we are updating the tensor pointer with a constant value, we can
       // propagate the attributes of the tensor pointer to the fat pointer.
       fatPtrs[{newAddPtrOp, fatPtrOffset}] =
@@ -823,7 +829,9 @@ public:
       propagateAtrs = false;
     }
 
-    rewriter.replaceOpWithMultiple(addPtrOp, {{newAddPtrOp, newOffset}});
+    //rewriter.replaceOpWithMultiple(addPtrOp, {{newAddPtrOp, newOffset}});
+    replaceOpWithMultiple(rewriter, addPtrOp, {{newAddPtrOp, newOffset}});
+
     auto nextFatPtr = std::pair{newAddPtrOp.getResult(), newOffset};
     fatPtrs[nextFatPtr].canNarrow = canNarrow;
     if (propagateAtrs)
@@ -1006,7 +1014,8 @@ private:
 
     LDBG("   -- new offset: " << newOffset);
 
-    rewriter.replaceOpWithMultiple(addPtrOp, {{fatPtrBase, newOffset}});
+    //rewriter.replaceOpWithMultiple(addPtrOp, {{fatPtrBase, newOffset}});
+    replaceOpWithMultiple(rewriter, addPtrOp, {{fatPtrBase, newOffset}});
 
     auto nextFatPtr = std::pair{fatPtrBase, newOffset};
     fatPtrs[nextFatPtr] = oldAttr;
@@ -1051,8 +1060,11 @@ public:
         loc, Type{slicedOffsetsTy}, Value{fatPtrOffset},
         extractSliceOp.getStaticOffsetsAttr());
 
-    rewriter.replaceOpWithMultiple(extractSliceOp,
+    //rewriter.replaceOpWithMultiple(extractSliceOp,
+    //                               {{fatPtrBase, slicedOffsets}});
+    replaceOpWithMultiple(rewriter, extractSliceOp,
                                    {{fatPtrBase, slicedOffsets}});
+
     fatPtrs[{fatPtrBase, slicedOffsets}] =
         fatPtrs.at({fatPtrBase, fatPtrOffset});
 
@@ -1127,7 +1139,8 @@ public:
       offset += len;
     }
 
-    rewriter.replaceOpWithMultiple(forOp, packedRets);
+    //rewriter.replaceOpWithMultiple(forOp, packedRets);
+    replaceOpWithMultiple(rewriter, forOp, packedRets);
 
     return success();
   }
@@ -1263,7 +1276,8 @@ public:
       offset += len;
     }
 
-    rewriter.replaceOpWithMultiple(whileOp, packedRets);
+    //rewriter.replaceOpWithMultiple(whileOp, packedRets);
+    replaceOpWithMultiple(rewriter, whileOp, packedRets);
 
     return success();
   }
@@ -1348,7 +1362,9 @@ public:
       auto newSelectOp = rewriter.create<arith::SelectOp>(
           selectOp.getLoc(), selectOp.getType(), selectOp.getCondition(),
           fatPtrTrue[0], selectOp.getFalseValue());
-      rewriter.replaceOpWithMultiple(selectOp, {{newSelectOp, fatPtrTrue[1]}});
+      //rewriter.replaceOpWithMultiple(selectOp, {{newSelectOp, fatPtrTrue[1]}});
+      replaceOpWithMultiple(rewriter, selectOp, {{newSelectOp, fatPtrTrue[1]}});
+
       fatPtrs[{newSelectOp, /*fatPtrOffset*/ fatPtrTrue[1]}] =
           fatPtrs.at({fatPtrTrue[0], fatPtrTrue[1]});
       return success();
@@ -1366,7 +1382,9 @@ public:
             fatPtrs.at({fatPtrFalse[0], fatPtrFalse[1]})) &&
            "expected can narrow to be the same for both fatPtrT and fatPtrF");
 
-    rewriter.replaceOpWithMultiple(selectOp, {{newBase, newOffset}});
+    //rewriter.replaceOpWithMultiple(selectOp, {{newBase, newOffset}});
+    replaceOpWithMultiple(rewriter, selectOp, {{newBase, newOffset}});
+
     fatPtrs[{newBase, newOffset}] = fatPtrs.at({fatPtrTrue[0], fatPtrTrue[1]});
 
     return success();
@@ -1466,7 +1484,8 @@ public:
         idx += 1;
       }
     }
-    rewriter.replaceOpWithMultiple(ifOp, replacements);
+    //rewriter.replaceOpWithMultiple(ifOp, replacements);
+    replaceOpWithMultiple(rewriter, ifOp, replacements);
 
     return success();
   }
@@ -1520,7 +1539,9 @@ public:
         result.getEncoding());
     auto newOffset = rewriter.create<tt::ExpandDimsOp>(
         expandOp.getLoc(), newResult, fatPtrOffset, adaptor.getAxis());
-    rewriter.replaceOpWithMultiple(expandOp, {{fatPtrBase, newOffset}});
+    //rewriter.replaceOpWithMultiple(expandOp, {{fatPtrBase, newOffset}});
+    replaceOpWithMultiple(rewriter, expandOp, {{fatPtrBase, newOffset}});
+
     fatPtrs[{fatPtrBase, newOffset}] = fatPtrs.at({fatPtrBase, fatPtrOffset});
 
     return success();
@@ -1562,7 +1583,9 @@ public:
     tt::gpu::ConvertLayoutOp cvtOffset =
         rewriter.create<tt::gpu::ConvertLayoutOp>(cvtOp.getLoc(), newOffsetType,
                                                   fatPtrOffset);
-    rewriter.replaceOpWithMultiple(cvtOp, {{fatPtrBase, cvtOffset}});
+    //rewriter.replaceOpWithMultiple(cvtOp, {{fatPtrBase, cvtOffset}});
+    replaceOpWithMultiple(rewriter, cvtOp, {{fatPtrBase, cvtOffset}});
+
     fatPtrs[{fatPtrBase, cvtOffset}] = fatPtrs.at({fatPtrBase, fatPtrOffset});
 
     return success();
@@ -1751,7 +1774,9 @@ public:
     if (auto integerAttr =
             llvm::dyn_cast_or_null<mlir::IntegerAttr>(maybeAttr)) {
       if (integerAttr.getValue() == 0) {
-        rewriter.replaceOpWithMultiple(castOp, {{fatPtrBase, fatPtrOffset}});
+        // rewriter.replaceOpWithMultiple(castOp, {{fatPtrBase, fatPtrOffset}});
+        replaceOpWithMultiple(rewriter, castOp, {{fatPtrBase, fatPtrOffset}});
+
         return success();
       }
     }

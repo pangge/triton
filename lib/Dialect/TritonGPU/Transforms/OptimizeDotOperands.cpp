@@ -342,7 +342,7 @@ public:
     patterns.add<FuseTransMMAV3Plus, ReshapeMemDesc>(context);
     patterns.add<UseShmemForScales>(context);
     ConvertLayoutOp::getCanonicalizationPatterns(patterns, context);
-    if (failed(applyPatternsGreedily(m, std::move(patterns))))
+    if (failed(mlir::applyPatternsAndFoldGreedily(m, std::move(patterns))))
       signalPassFailure();
   }
 };

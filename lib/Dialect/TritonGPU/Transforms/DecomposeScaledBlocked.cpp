@@ -15,6 +15,10 @@ using namespace mlir::triton::gpu;
 
 namespace mlir::triton::gpu {
 
+inline RankedTensorType cloneWithEncoding(RankedTensorType type, ::mlir::Attribute encoding) {
+  return RankedTensorType::get(type.getShape(), type.getElementType(), encoding);
+}
+
 SmallVector<int, 2> DecomposeScaledBlocked::getTransposeOrder(int rank) {
   assert(rank >= 2);
   auto transOrder = llvm::to_vector<2>(llvm::seq<int>(rank - 2));
@@ -112,7 +116,7 @@ TypedValue<RankedTensorType> DecomposeScaledBlocked::broadcastScale(
         getDefaultBlockedEncoding(ctx, shape, nWarps, threadsPerWarp, numCTAs);
     // 2.1.2) Cast scale16 to SliceEncoding
     auto sliceEnc = SliceEncodingAttr::get(ctx, rank, blockedEnc);
-    auto sliceType = scaleTy.cloneWithEncoding(sliceEnc);
+    auto sliceType = cloneWithEncoding(scaleTy, sliceEnc);
     scale = rewriter.create<ConvertLayoutOp>(loc, sliceType, scale);
   }
   auto expandScale = rewriter.create<ExpandDimsOp>(loc, scale, rank);
@@ -159,7 +163,7 @@ TypedValue<RankedTensorType> DecomposeScaledBlocked::maskNan(
   auto cond = broadcastScale(rewriter, scaledDotOp, mod, scaleIsNan, dim);
   // Make scale is NaN compatible with mxfp
   auto condTy = cond.getType();
-  condTy = condTy.cloneWithEncoding(mxfp.getType().getEncoding());
+  condTy = cloneWithEncoding(condTy, mxfp.getType().getEncoding());
   cond = rewriter.create<ConvertLayoutOp>(loc, condTy, cond);
 
   // Create NaN
@@ -249,7 +253,7 @@ DecomposeScaledBlocked::cvtDotOperand(PatternRewriter &rewriter,
   auto vType = v.getType();
   auto encoding =
       DotOperandEncodingAttr::get(ctx, opIdx, retEnc, vType.getElementType());
-  auto retTy = vType.cloneWithEncoding(encoding);
+  auto retTy = cloneWithEncoding(vType, encoding);
   return rewriter.create<ConvertLayoutOp>(v.getLoc(), retTy, v);
 }
 

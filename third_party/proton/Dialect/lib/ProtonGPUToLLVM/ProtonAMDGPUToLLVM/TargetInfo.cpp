@@ -83,8 +83,8 @@ static uint32_t getCU_PER_XCD(llvm::AMDGPU::GPUKind GPUKind) {
   switch (GPUKind) {
   case llvm::AMDGPU::GK_GFX942:
     return 38;
-  case llvm::AMDGPU::GK_GFX950:
-    return 32;
+  //case llvm::AMDGPU::GK_GFX950:
+  //  return 32;
   default:
     llvm_unreachable("unsupported arch");
   }
@@ -94,8 +94,8 @@ static uint32_t getCU_PER_SE(llvm::AMDGPU::GPUKind GPUKind) {
   switch (GPUKind) {
   case llvm::AMDGPU::GK_GFX942:
     return 10;
-  case llvm::AMDGPU::GK_GFX950:
-    return 10;
+  //case llvm::AMDGPU::GK_GFX950:
+  //  return 10;
   default:
     llvm_unreachable("unsupported arch");
   }
@@ -112,7 +112,7 @@ Value TargetInfo::processorId(ConversionPatternRewriter &rewriter,
   // For now only support gfx942, and gfx950
   switch (GPUKind) {
   case llvm::AMDGPU::GK_GFX942:
-  case llvm::AMDGPU::GK_GFX950:
+  //case llvm::AMDGPU::GK_GFX950:
     xcc_id = getXCCID(rewriter, loc);
     break;
   default:
@@ -125,8 +125,8 @@ Value TargetInfo::processorId(ConversionPatternRewriter &rewriter,
 
   // For XCC based architectures to get a unique CU id for a wave:
   // global_cu_id = xcc_id * CU_PER_XCD + se_id * CU_PER_SE + cu_id (local)
-  if (GPUKind == llvm::AMDGPU::GK_GFX942 ||
-      GPUKind == llvm::AMDGPU::GK_GFX950) {
+  if (GPUKind == llvm::AMDGPU::GK_GFX942 /*||
+      GPUKind == llvm::AMDGPU::GK_GFX950*/) {
     uint32_t CU_PER_XCD = getCU_PER_XCD(GPUKind);
     uint32_t CU_PER_SE = getCU_PER_SE(GPUKind);
     cu_id = b.add(b.add(b.mul(xcc_id, b.i32_val(CU_PER_XCD)),

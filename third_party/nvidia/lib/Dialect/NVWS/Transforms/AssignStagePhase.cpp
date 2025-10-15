@@ -302,7 +302,7 @@ template <class T> struct AssignStagePhase {
   }
 
   static LogicalResult run(ArefCreateOp arefOp) {
-    std::set<int> partitionIds;
+    SetVector<int> partitionIds;
     for (auto user : arefOp->getUsers()) {
       // Each partition requires its own stage/phase tracking for proper
       // multi-user handling; collect partition IDs in which this aref is used
@@ -315,7 +315,9 @@ template <class T> struct AssignStagePhase {
       // if partitionIds is an empty set, it means aref ops used outside ttg.ws
       // so we to insert a dummy partitionId for this aref, since we still need
       // to assign correct phase
-      partitionIds.insert({0, 0});
+      //partitionIds.insert({0, 0});
+      partitionIds.insert(0);
+      partitionIds.insert(0);
     }
 
     // initialize indexes

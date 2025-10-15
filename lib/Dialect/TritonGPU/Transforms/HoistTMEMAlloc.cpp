@@ -557,7 +557,7 @@ struct HoistTMEMAlloc
                    TMEMLoadForwarding>(&getContext());
     }
     scf::ForOp::getCanonicalizationPatterns(patterns, &getContext());
-    if (failed(applyPatternsGreedily(getOperation(), std::move(patterns)))) {
+    if (failed(mlir::applyPatternsAndFoldGreedily(getOperation(), std::move(patterns)))) {
       llvm_unreachable("Failed to hoist tmem_store");
     }
 

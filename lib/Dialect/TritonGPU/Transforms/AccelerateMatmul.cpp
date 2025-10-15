@@ -29,6 +29,11 @@ namespace gpu {
 
 namespace {
 
+RankedTensorType cloneWithEncoding(RankedTensorType type, ::mlir::Attribute encoding) {
+  return RankedTensorType::get(type.getShape(), type.getElementType(), encoding);
+}
+
+
 // Get the highest version supported for the hardware and the dot.
 static int getMMAVersionSafe(int computeCapability, DotOp op) {
   // List supported mma version in order of preference.
@@ -332,7 +337,7 @@ static MMAEncodingResult createMMAEncodingForDot(DotOpInterface dotOp,
   auto mmaEnc = NvidiaMmaEncodingAttr::get(oldRetType.getContext(),
                                            versionMajor, versionMinor,
                                            warpsPerTile, CTALayout, instrShape);
-  auto newRetType = oldRetType.cloneWithEncoding(mmaEnc);
+  auto newRetType = cloneWithEncoding(oldRetType, mmaEnc);
 
   auto oldAcc = dotOp->getOperand(2);
   auto newAcc =
@@ -349,7 +354,7 @@ static Value convertDotOperandForMMA(Value v, int opIdx, int bitwidth,
   auto vType = cast<RankedTensorType>(v.getType());
   auto newVEncoding = DotOperandEncodingAttr::get(
       v.getContext(), opIdx, newRetType.getEncoding(), minType);
-  auto newVType = vType.cloneWithEncoding(newVEncoding);
+  auto newVType = cloneWithEncoding(vType, newVEncoding);
   return rewriter.create<ConvertLayoutOp>(v.getLoc(), newVType, v);
 }
 
@@ -508,11 +513,11 @@ static Value splitBOperand(Value b, mlir::PatternRewriter &rewriter) {
     if (!tensorType)
       continue;
     Value newOperand = rewriter.create<ConvertLayoutOp>(
-        operand.get().getLoc(), tensorType.cloneWithEncoding(newLayout),
+        operand.get().getLoc(), cloneWithEncoding(tensorType, newLayout),
         operand.get());
     loadOp->setOperand(operand.getOperandNumber(), newOperand);
   }
-  loadOp->getResult(0).setType(bType.cloneWithEncoding(newLayout));
+  loadOp->getResult(0).setType(cloneWithEncoding(bType, newLayout));
   Value newB = loadOp->getResult(0);
   rewriter.setInsertionPointAfter(loadOp);
   auto cvt = rewriter.create<ConvertLayoutOp>(b.getLoc(), bType, newB);
@@ -580,7 +585,7 @@ public:
         /*mutableMemory=*/true);
     Attribute newDistributedEncoding = nvidia_gpu::getTmemCompatibleLayout(
         instrShape[0], instrShape[1], oldRetType, numWarps);
-    auto newAccType = oldRetType.cloneWithEncoding(newDistributedEncoding);
+    auto newAccType = cloneWithEncoding(oldRetType, newDistributedEncoding);
     Value cvtAcc =
         rewriter.create<ConvertLayoutOp>(loc, newAccType, dotOp.getOperand(2));
     auto tokType = rewriter.getType<AsyncTokenType>();
@@ -856,7 +861,7 @@ public:
         /*mutableMemory=*/true);
     Attribute newDistributedEncoding =
         nvidia_gpu::getTmemCompatibleLayout(m, n, oldRetType, numWarps);
-    auto newAccType = oldRetType.cloneWithEncoding(newDistributedEncoding);
+    auto newAccType = cloneWithEncoding(oldRetType, newDistributedEncoding);
     Value cvtAcc =
         rewriter.create<ConvertLayoutOp>(loc, newAccType, dotOp.getOperand(2));
     auto tokType = rewriter.getType<AsyncTokenType>();
@@ -880,9 +885,9 @@ public:
     Attribute scaleALayout = getTmemScales(oldScaleAType, numWarps);
     Attribute scaleBLayout = getTmemScales(oldScaleBType, numWarps);
     RankedTensorType newScaleAType =
-        oldScaleAType.cloneWithEncoding(scaleALayout);
+        cloneWithEncoding(oldScaleAType, scaleALayout);
     RankedTensorType newScaleBType =
-        oldScaleBType.cloneWithEncoding(scaleBLayout);
+        cloneWithEncoding(oldScaleBType, scaleBLayout);
 
     auto lhsScale = addSmemStageToScaleLoad(dotOp.getAScale(), rewriter);
     auto rhsScale = addSmemStageToScaleLoad(dotOp.getBScale(), rewriter);
@@ -1031,7 +1036,7 @@ public:
     patterns.add<BlockedToMMAv5, ScaledBlockedToMMAv5>(
         context, computeCapability, benefitMMAv5);
 
-    if (applyPatternsGreedily(m, std::move(patterns)).failed()) {
+    if (mlir::applyPatternsAndFoldGreedily(m, std::move(patterns)).failed()) {
       signalPassFailure();
     }
     // Now that we have picked the mma type, decompose dot that are not natively

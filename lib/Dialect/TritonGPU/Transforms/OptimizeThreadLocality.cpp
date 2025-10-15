@@ -17,6 +17,10 @@ namespace mlir {
 namespace triton {
 namespace gpu {
 
+inline RankedTensorType cloneWithEncoding(RankedTensorType type, ::mlir::Attribute encoding) {
+  return RankedTensorType::get(type.getShape(), type.getElementType(), encoding);
+}
+
 #define GEN_PASS_DEF_TRITONGPUOPTIMIZETHREADLOCALITY
 #include "triton/Dialect/TritonGPU/Transforms/Passes.h.inc"
 
@@ -199,9 +203,9 @@ static LogicalResult setOptimizedGatherLayout(GatherOp op, RewriterBase &b) {
 
   // Update the layout on the gather op and insert conversions.
   auto cvtSrc = b.create<ConvertLayoutOp>(
-      op.getLoc(), srcType.cloneWithEncoding(newLayout), op.getSrc());
+      op.getLoc(), cloneWithEncoding(srcType, newLayout), op.getSrc());
   auto cvtIdx = b.create<ConvertLayoutOp>(
-      op.getLoc(), idxType.cloneWithEncoding(newLayout), op.getIndices());
+      op.getLoc(), cloneWithEncoding(idxType, newLayout), op.getIndices());
 
   b.setInsertionPointAfter(op);
   auto cvtOut =
@@ -211,7 +215,7 @@ static LogicalResult setOptimizedGatherLayout(GatherOp op, RewriterBase &b) {
   b.modifyOpInPlace(op, [&] {
     op.getSrcMutable().set(cvtSrc);
     op.getIndicesMutable().set(cvtIdx);
-    op.getResult().setType(op.getType().cloneWithEncoding(newLayout));
+    op.getResult().setType(cloneWithEncoding(op.getType(), newLayout));
 
     // Mark the layout as optimized on the op to prevent it from being changed.
     op.setEfficientLayout(true);
@@ -247,7 +251,7 @@ class TritonGPUOptimizeThreadLocalityPass
     mlir::RewritePatternSet layoutPatterns(&getContext());
     layoutPatterns.add<OptimizeReshapeLayoutPattern>(&getContext());
     layoutPatterns.add<OptimizeGatherLayoutPattern>(&getContext());
-    if (mlir::applyPatternsGreedily(mod, std::move(layoutPatterns)).failed()) {
+    if (mlir::applyPatternsAndFoldGreedily(mod, std::move(layoutPatterns)).failed()) {
       signalPassFailure();
     }
 

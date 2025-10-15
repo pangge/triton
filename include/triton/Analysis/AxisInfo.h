@@ -225,7 +225,7 @@ public:
       initialize(funcOp, callback);
       funcOp.walk([&](CallOpInterface callOp) {
         auto callee = dyn_cast<FunctionOpInterface>(
-            callOp.resolveCallableInTable(&symbolTable));
+            callOp.resolveCallable(&symbolTable));
         update(callOp, callee);
       });
     }

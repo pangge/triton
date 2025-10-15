@@ -202,8 +202,9 @@ if(TRITON_BUILD_PYTHON_MODULE)
     add_subdirectory(third_party/proton)
   endif()
   # We always build proton dialect
-  list(APPEND TRITON_PLUGIN_NAMES "proton")
-  add_subdirectory(third_party/proton/Dialect)
+  # why? disable and comment by ccw
+  # list(APPEND TRITON_PLUGIN_NAMES "proton")
+  # add_subdirectory(third_party/proton/Dialect)
 
   get_property(triton_libs GLOBAL PROPERTY TRITON_LIBS)
   get_property(triton_plugins GLOBAL PROPERTY TRITON_PLUGINS)
@@ -242,6 +243,7 @@ if(TRITON_BUILD_PYTHON_MODULE)
     LLVMAMDGPUAsmParser
 
     Python3::Module
+    Python3::Python
     pybind11::headers
 
   )
@@ -337,9 +339,10 @@ find_package(Threads REQUIRED)
 
 add_subdirectory(third_party/f2reduce)
 add_subdirectory(bin)
-add_subdirectory(test)
+#add_subdirectory(test)
 
 if(TRITON_BUILD_UT)
+  add_subdirectory(test)
   add_subdirectory(unittest)
   # This target runs all the unit tests.
   add_custom_target(check-triton-unit-tests

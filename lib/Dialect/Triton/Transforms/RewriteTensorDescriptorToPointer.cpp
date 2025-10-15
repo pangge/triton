@@ -15,7 +15,7 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/SmallVectorExtras.h"
-#include "llvm/Support/LogicalResult.h"
+#include "mlir/Support/LogicalResult.h"
 #include "llvm/Support/raw_ostream.h"
 #include <mlir/Dialect/Arith/IR/Arith.h>
 #include <mlir/Dialect/Func/Transforms/FuncConversions.h>
@@ -168,8 +168,10 @@ Value generateMaskFromOffsetRanges(OpBuilder &builder, const Location &loc,
     auto offsetWithRange = offsetRanges[i];
 
     // Compare with lower bound
+    //Value lowerBound = builder.create<mlir::arith::ConstantIntOp>(
+    //    loc, builder.getI64Type(), 0);
     Value lowerBound = builder.create<mlir::arith::ConstantIntOp>(
-        loc, builder.getI64Type(), 0);
+        loc, /*builder.getI64Type(), */(int64_t)0, 64);
     Value splatLowerBound = builder.create<triton::SplatOp>(
         loc, offsetWithRange.getType(), lowerBound);
     Value cmpLower = builder.create<arith::CmpIOp>(
@@ -251,7 +253,7 @@ SmallVector<mlir::Value> castToI64(OpBuilder &builder,
 struct RewriteMakeTensorDesc : OpConversionPattern<triton::MakeTensorDescOp> {
   using OpConversionPattern<triton::MakeTensorDescOp>::OpConversionPattern;
 
-  llvm::LogicalResult
+  LogicalResult
   matchAndRewrite(triton::MakeTensorDescOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     SmallVector<mlir::Value> ptrShapeStridesPaddingOption;
@@ -264,7 +266,8 @@ struct RewriteMakeTensorDesc : OpConversionPattern<triton::MakeTensorDescOp> {
         rewriter.getBoolAttr(adaptor.getPadding() ==
                              triton::PaddingOption::PAD_NAN));
     llvm::append_values(ptrShapeStridesPaddingOption, paddingOption);
-    rewriter.replaceOpWithMultiple(op, {ptrShapeStridesPaddingOption});
+    //rewriter.replaceOpWithMultiple(op, {ptrShapeStridesPaddingOption});
+    replaceOpWithMultiple(rewriter, op, {ptrShapeStridesPaddingOption});
     return mlir::success();
   }
 };
@@ -272,8 +275,8 @@ struct RewriteMakeTensorDesc : OpConversionPattern<triton::MakeTensorDescOp> {
 struct RewriteLoadPattern : OpConversionPattern<triton::DescriptorLoadOp> {
   using OpConversionPattern<triton::DescriptorLoadOp>::OpConversionPattern;
 
-  llvm::LogicalResult
-  matchAndRewrite(triton::DescriptorLoadOp op, OneToNOpAdaptor adaptor,
+  LogicalResult
+  matchAndRewrite(triton::DescriptorLoadOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = op.getLoc();
     const auto blockShape = op.getDesc().getType().getBlockType().getShape();
@@ -287,15 +290,15 @@ struct RewriteLoadPattern : OpConversionPattern<triton::DescriptorLoadOp> {
         triton::CacheModifier::NONE, triton::EvictionPolicy::NORMAL, false);
     newLoad->setAttrs(filterSegmentSizes(op->getAttrs()));
 
-    return llvm::success();
+    return success();
   }
 };
 
 struct RewriteStorePattern : OpConversionPattern<triton::DescriptorStoreOp> {
   using OpConversionPattern<triton::DescriptorStoreOp>::OpConversionPattern;
 
-  llvm::LogicalResult
-  matchAndRewrite(triton::DescriptorStoreOp op, OneToNOpAdaptor adaptor,
+  LogicalResult
+  matchAndRewrite(triton::DescriptorStoreOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = op.getLoc();
     auto descTy = op.getDesc().getType();
@@ -309,7 +312,7 @@ struct RewriteStorePattern : OpConversionPattern<triton::DescriptorStoreOp> {
         triton::CacheModifier::NONE, triton::EvictionPolicy::NORMAL);
     newStore->setAttrs(filterSegmentSizes(op->getAttrs()));
 
-    return llvm::success();
+    return success();
   }
 };
 
@@ -337,8 +340,8 @@ generateGatherScatterPtrMask(OpBuilder &builder, Location loc,
 struct RewriteGatherPattern : OpConversionPattern<triton::DescriptorGatherOp> {
   using OpConversionPattern<triton::DescriptorGatherOp>::OpConversionPattern;
 
-  llvm::LogicalResult
-  matchAndRewrite(triton::DescriptorGatherOp op, OneToNOpAdaptor adaptor,
+  LogicalResult
+  matchAndRewrite(triton::DescriptorGatherOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = op.getLoc();
     auto descTy = op.getDesc().getType();
@@ -354,7 +357,7 @@ struct RewriteGatherPattern : OpConversionPattern<triton::DescriptorGatherOp> {
         triton::EvictionPolicy::NORMAL, false);
     newLoad->setAttrs(filterSegmentSizes(op->getAttrs()));
 
-    return llvm::success();
+    return success();
   }
 };
 
@@ -362,8 +365,8 @@ struct RewriteScatterPattern
     : OpConversionPattern<triton::DescriptorScatterOp> {
   using OpConversionPattern<triton::DescriptorScatterOp>::OpConversionPattern;
 
-  llvm::LogicalResult
-  matchAndRewrite(triton::DescriptorScatterOp op, OneToNOpAdaptor adaptor,
+  LogicalResult
+  matchAndRewrite(triton::DescriptorScatterOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = op.getLoc();
     auto descTy = op.getDesc().getType();
@@ -376,7 +379,7 @@ struct RewriteScatterPattern
         triton::EvictionPolicy::NORMAL);
     newStore->setAttrs(filterSegmentSizes(op->getAttrs()));
 
-    return llvm::success();
+    return success();
   }
 };
 
@@ -415,8 +418,8 @@ std::optional<RMWOp> translateReduceKind(DescriptorReduceKind kind,
 struct RewriteReducePattern : OpConversionPattern<triton::DescriptorReduceOp> {
   using OpConversionPattern<triton::DescriptorReduceOp>::OpConversionPattern;
 
-  llvm::LogicalResult
-  matchAndRewrite(triton::DescriptorReduceOp op, OneToNOpAdaptor adaptor,
+  LogicalResult
+  matchAndRewrite(triton::DescriptorReduceOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = op.getLoc();
     auto descTy = op.getDesc().getType();
@@ -517,7 +520,7 @@ class TritonRewriteTensorDescriptorToPointerPass
             converter, &getContext());
 
     ConversionConfig config;
-    config.buildMaterializations = false;
+    // config.buildMaterializations = false;
 
     if (mlir::failed(mlir::applyPartialConversion(
             op, target, std::move(patterns), config))) {

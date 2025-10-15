@@ -98,10 +98,10 @@ static std::optional<NVVM::ReduxKind> matchReduxKind(triton::ReduceOp op,
   if (computeCapability == 100 && reduceOp->getResultTypes()[0].isF32()) {
     if (isa<arith::MinimumFOp, arith::MaximumFOp>(reduceOp))
       useNanQualifier = true;
-    if (isa<arith::MaxNumFOp, arith::MaximumFOp>(reduceOp))
-      return NVVM::ReduxKind::FMAX;
-    if (isa<arith::MinNumFOp, arith::MinimumFOp>(reduceOp))
-      return NVVM::ReduxKind::FMIN;
+    //if (isa<arith::MaxNumFOp, arith::MaximumFOp>(reduceOp))
+    //  return NVVM::ReduxKind::FMAX;
+    //if (isa<arith::MinNumFOp, arith::MinimumFOp>(reduceOp))
+    //  return NVVM::ReduxKind::FMIN;
   }
   auto intType = dyn_cast<IntegerType>(reduceOp->getResultTypes()[0]);
   if (!intType || intType.getWidth() > 32)
@@ -136,10 +136,10 @@ Value TargetInfo::getClusterCTAId(RewriterBase &rewriter, Location loc) const {
 
 Value TargetInfo::ballot(RewriterBase &rewriter, Location loc, Type type,
                          Value cmp) const {
-  auto b = TritonLLVMOpBuilder(loc, rewriter);
-  Value threadMask = b.int_val(type.getIntOrFloatBitWidth(), -1);
-  return rewriter.create<NVVM::VoteSyncOp>(loc, type, threadMask, cmp,
-                                           NVVM::VoteSyncKind::ballot);
+  return cmp; //auto b = TritonLLVMOpBuilder(loc, rewriter);
+  //Value threadMask = b.int_val(type.getIntOrFloatBitWidth(), -1);
+  //return rewriter.create<NVVM::VoteSyncOp>(loc, type, threadMask, cmp,
+  //                                         NVVM::VoteSyncKind::ballot);
 }
 
 void TargetInfo::barrier(Location loc, RewriterBase &rewriter,
@@ -154,7 +154,7 @@ void TargetInfo::barrier(Location loc, RewriterBase &rewriter,
 
 static Value mapa(RewriterBase &rewriter, Location loc, Value ptr, Value ctaid,
                   Value pred) {
-  return rewriter.create<NVVM::MapaOp>(loc, ptr.getType(), ptr, ctaid);
+  return pred;//return rewriter.create<NVVM::MapaOp>(loc, ptr.getType(), ptr, ctaid);
 }
 
 static std::string getConstraintForBitwidth(unsigned bitwidth) {
@@ -249,12 +249,12 @@ void TargetInfo::storeDShared(RewriterBase &rewriter, Location loc, Value ptr,
     auto newVecTy = vec_ty(elemTy, maxVec);
     SmallVector<Value> vals = unpackLLVector(loc, val, rewriter);
     for (int i = 0; i < vec / maxVec; i++) {
-      auto newPtr = b.gep(ptr.getType(), elemTy, ptr, b.i32_val(i * maxVec),
-                          LLVM::GEPNoWrapFlags::inbounds);
-      storeDShared(
-          rewriter, loc, newPtr, ctaId,
-          packLLVector(loc, ArrayRef(vals).slice(i * maxVec, maxVec), rewriter),
-          pred);
+      //auto newPtr = b.gep(ptr.getType(), elemTy, ptr, b.i32_val(i * maxVec),
+      //                    LLVM::GEPNoWrapFlags::inbounds);
+      //storeDShared(
+      //    rewriter, loc, newPtr, ctaId,
+      //    packLLVector(loc, ArrayRef(vals).slice(i * maxVec, maxVec), rewriter),
+      //    pred);
     }
     return;
   }
@@ -366,13 +366,13 @@ Value TargetInfo::loadDShared(RewriterBase &rewriter, Location loc, Value ptr,
 
     SmallVector<Value> vals;
     for (int i = 0; i < vec / maxVec; i++) {
-      auto newPtr = b.gep(ptr.getType(), elemTy, ptr, b.i32_val(i * maxVec),
-                          LLVM::GEPNoWrapFlags::inbounds);
-      auto newVal = loadDShared(rewriter, loc, newPtr, ctaId,
-                                vec_ty(elemTy, maxVec), pred);
-      for (Value v : unpackLLVector(loc, newVal, rewriter)) {
-        vals.push_back(v);
-      }
+      //auto newPtr = b.gep(ptr.getType(), elemTy, ptr, b.i32_val(i * maxVec),
+      //                    LLVM::GEPNoWrapFlags::inbounds);
+      //auto newVal = loadDShared(rewriter, loc, newPtr, ctaId,
+      //                          vec_ty(elemTy, maxVec), pred);
+      //for (Value v : unpackLLVector(loc, newVal, rewriter)) {
+      //  vals.push_back(v);
+      //}
     }
     return packLLVector(loc, vals, rewriter);
   }
@@ -488,8 +488,8 @@ bool TargetInfo::warpReduce(RewriterBase &rewriter, Location loc,
           }
         }
         acc[i] = rewriter.create<NVVM::ReduxOp>(loc, acc[i].getType(), acc[0],
-                                                *kind, mask, /*abs=*/false,
-                                                /*nan=*/useNanQualifier);
+                                                *kind, mask);//, /*abs=*/false,
+                                                ///*nan=*/useNanQualifier);
         if (acc[i].getType().isInteger()) {
           if (bitwidth < 32)
             acc[i] = b.trunc(int_ty(bitwidth), acc[i]);

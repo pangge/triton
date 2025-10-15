@@ -28,6 +28,7 @@
 #include "mlir/Dialect/UB/IR/UBOps.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"
+#include "mlir/Pass/PassManager.h"
 #include "mlir/IR/Location.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/Value.h"
@@ -895,7 +896,7 @@ public:
     mlir::RewritePatternSet patterns(context);
     patterns.add<LowerArefCreate>(context);
     GreedyRewriteConfig config;
-    if (applyPatternsGreedily(m, std::move(patterns), config).failed())
+    if (applyPatternsAndFoldGreedily(m, std::move(patterns), config).failed())
       signalPassFailure();
   }
 }; // namespace triton

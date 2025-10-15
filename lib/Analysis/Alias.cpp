@@ -19,7 +19,7 @@ AliasInfo AliasInfo::join(const AliasInfo &lhs, const AliasInfo &rhs) {
   return ret;
 }
 
-LogicalResult SharedMemoryAliasAnalysis::visitOperation(
+void SharedMemoryAliasAnalysis::visitOperation(
     Operation *op, ArrayRef<const dataflow::Lattice<AliasInfo> *> operands,
     ArrayRef<dataflow::Lattice<AliasInfo> *> results) {
   AliasInfo aliasInfo;
@@ -29,7 +29,7 @@ LogicalResult SharedMemoryAliasAnalysis::visitOperation(
   if (auto memdescTy = dyn_cast<triton::gpu::MemDescType>(result.getType())) {
     if (!isa_and_nonnull<triton::gpu::SharedMemorySpaceAttr>(
             memdescTy.getMemorySpace()))
-      return success();
+      return ;//success();
   }
 
   // Only LocalAllocOp creates a new buffer.
@@ -49,13 +49,17 @@ LogicalResult SharedMemoryAliasAnalysis::visitOperation(
 
   if (pessimistic) {
     setAllToEntryStates(results);
-    return success();
+    return ;//success();
   }
   // Join all lattice elements
   for (auto *result : results)
     propagateIfChanged(result, result->join(aliasInfo));
 
-  return success();
+  //return success();
+}
+
+ProgramPoint getProgramPointAfter(Operation* op) {
+  return ProgramPoint(op);
 }
 
 void SharedMemoryAliasAnalysis::visitNonControlFlowArguments(
@@ -72,7 +76,8 @@ void SharedMemoryAliasAnalysis::visitNonControlFlowArguments(
   // Propagate aliases from the parent operation's operands to the block
   // arguments.
   assert(!successor.isParent());
-  ProgramPoint *point = getProgramPointAfter(wsOp);
+  //ProgramPoint *point = getProgramPoint<ProgramPoint>(wsOp);
+  ProgramPoint point = getProgramPointAfter(wsOp);
 
   for (auto [capture, argLattice] :
        llvm::zip(wsOp.getParentOp().getExplicitCaptures(), argLattices)) {

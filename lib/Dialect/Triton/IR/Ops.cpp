@@ -17,10 +17,11 @@ namespace triton {
 void LoadOp::getEffects(
     SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>
         &effects) {
-  effects.emplace_back(MemoryEffects::Read::get(), &getPtrMutable(),
+  effects.emplace_back(MemoryEffects::Read::get(), getPtr(),
                        GlobalMemory::get());
   if (getIsVolatile())
-    effects.emplace_back(MemoryEffects::Write::get());
+    effects.emplace_back(MemoryEffects::Write::get(),
+		    	 SideEffects::DefaultResource::get());
 }
 
 } // namespace triton
@@ -1051,8 +1052,11 @@ void FuncOp::build(OpBuilder &builder, OperationState &state, StringRef name,
   if (argAttrs.empty())
     return;
   assert(type.getNumInputs() == argAttrs.size());
-  call_interface_impl::addArgAndResultAttrs(
-      builder, state, argAttrs, /*resultAttrs=*/{},
+  //call_interface_impl::addArgAndResultAttrs(
+  //    builder, state, argAttrs, /*resultAttrs=*/{},
+  //    getArgAttrsAttrName(state.name), getResAttrsAttrName(state.name));
+  function_interface_impl::addArgAndResultAttrs(
+      builder, state, argAttrs, /*resultAttrs=*/std::nullopt,
       getArgAttrsAttrName(state.name), getResAttrsAttrName(state.name));
 }
 

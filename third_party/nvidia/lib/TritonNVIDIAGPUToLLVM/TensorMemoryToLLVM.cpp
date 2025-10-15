@@ -452,8 +452,8 @@ lowerTMemLdSt(Location loc, MLIRContext *ctx,
         loc, rewriter, reps,
         {{kReg, b.i32_val(0)}, {kLane, b.i32_val(0)}, {kWarp, warpId}});
     auto [row, col] = getRowCol(rowCol);
-    tmemBase = b.add(tmemBase,
-                     b.or_(b.shl(row, b.i32_val(16)), col, /*disjoint*/ true));
+    //tmemBase = b.add(tmemBase,
+    //                 b.or_(b.shl(row, b.i32_val(16)).getResult(), col, /*disjoint*/ true));
   }
 
   SmallVector<Value> resultVals;
@@ -720,7 +720,7 @@ struct TensorMemoryLoadOpConversion
     Value resultStruct = packLLElements(loc, getTypeConverter(), *resultValsOr,
                                         rewriter, structTy);
     // Wait insertion could be moved to the TTGIR level if needed.
-    rewriter.create<NVVM::Tcgen05WaitOp>(loc, NVVM::Tcgen05WaitKind::LOAD);
+    //rewriter.create<NVVM::Tcgen05WaitOp>(loc, NVVM::Tcgen05WaitKind::LOAD);
     rewriter.replaceOp(op, {resultStruct});
     return success();
   }
@@ -752,7 +752,7 @@ struct TensorMemoryStoreOpConversion
                                maxnreg, pred, llvmElemTy, srcValues);
     if (failed(lowered))
       return failure();
-    rewriter.create<NVVM::Tcgen05WaitOp>(loc, NVVM::Tcgen05WaitKind::STORE);
+    //rewriter.create<NVVM::Tcgen05WaitOp>(loc, NVVM::Tcgen05WaitKind::STORE);
 
     // Emit a barrier to ensure all threads have finished writing to tensor
     // memory before any use of the tensor memory.
@@ -800,7 +800,7 @@ struct TensorMemoryAllocOpConversion
                                  b.i1_val(true), llvmElemTy, srcValues);
       if (failed(lowered))
         return failure();
-      rewriter.create<NVVM::Tcgen05WaitOp>(loc, NVVM::Tcgen05WaitKind::STORE);
+      //rewriter.create<NVVM::Tcgen05WaitOp>(loc, NVVM::Tcgen05WaitKind::STORE);
       // Emit a barrier to ensure all threads have finished writing to tensor
       // memory before any use of the tensor memory.
       b.barrier();
@@ -898,10 +898,10 @@ static void copySharedToTmem(ConversionPatternRewriter &rewriter, Location loc,
     // smemLoad takes the colRep. It'd be nice to change this but we would need
     // to change the wgmma and mmav5 lowering
     auto desc = loader.smemLoad(0, col / instrShape[1], rewriter, loc);
-    auto tmemAddr =
-        b.or_(b.ptrtoint(i32_ty, baseDst), b.i32_val(col * bitwidth / 32),
-              /*disjoint=*/true);
-    createTcgen05Cp(rewriter, loc, tmemAddr, desc, pred, atom);
+    //auto tmemAddr =
+    //    b.or_(b.ptrtoint(i32_ty, baseDst), b.i32_val(col * bitwidth / 32),
+    //          /*disjoint=*/true);
+    //createTcgen05Cp(rewriter, loc, tmemAddr, desc, pred, atom);
   }
 }
 

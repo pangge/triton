@@ -8,12 +8,18 @@
 #include "triton/Dialect/TritonGPU/Transforms/Utility.h"
 #include "triton/Dialect/TritonNvidiaGPU/IR/Dialect.h"
 #include "triton/Dialect/TritonNvidiaGPU/Transforms/Passes.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 namespace ttg = mlir::triton::gpu;
 
 namespace mlir {
 namespace triton {
 namespace nvidia_gpu {
+
+RankedTensorType cloneWithEncoding(RankedTensorType type, ::mlir::Attribute encoding) {
+  return RankedTensorType::get(type.getShape(), type.getElementType(), encoding);
+}
+
 
 #define GEN_PASS_DEF_TRITONNVIDIAGPUOPTIMIZETMEMLAYOUTSPASS
 #include "triton/Dialect/TritonNvidiaGPU/Transforms/Passes.h.inc"
@@ -121,7 +127,7 @@ public:
           mDim, splitNSize, splitOp.getOutLHS().getType(), numWarps);
 
       RankedTensorType newLoadType =
-          splitOp.getOutLHS().getType().cloneWithEncoding(distLayout);
+          cloneWithEncoding(splitOp.getOutLHS().getType(), distLayout);
 
       // Generate the load and convert_layout back to the original layout.
       auto load =
@@ -182,7 +188,7 @@ public:
 
     Attribute distLayout = getTmemCompatibleLayout(
         mDim, splitNSize, joinOp.getLhs().getType(), numWarps);
-    auto newStoreType = joinOp.getLhs().getType().cloneWithEncoding(distLayout);
+    auto newStoreType = cloneWithEncoding(joinOp.getLhs().getType(), distLayout);
 
     // First slice.
     auto subSlice0 = b.create<TMEMSubSliceOp>(loc, tmem, 0, splitNSize);
@@ -252,7 +258,7 @@ public:
     if (newLayout == oldType.getEncoding())
       return failure();
 
-    auto newType = oldType.cloneWithEncoding(newLayout);
+    auto newType = cloneWithEncoding(oldType, newLayout);
     tmemLoadOp.getResult().setType(newType);
     OpBuilder builder(tmemLoadOp);
     builder.setInsertionPointAfter(tmemLoadOp);
@@ -435,7 +441,7 @@ public:
     patterns
         .add<TMemSplitLoadPattern, TMemStoreJoinPattern, TMemLoadReducePattern,
              TMemFromSharedMemPattern, TMemToSharedMemPattern>(context);
-    if (failed(applyPatternsGreedily(m, std::move(patterns))))
+    if (failed(applyPatternsAndFoldGreedily(m, std::move(patterns))))
       signalPassFailure();
   }
 };

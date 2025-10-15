@@ -36,7 +36,7 @@
 #include "triton/Dialect/TritonGPU/Transforms/PipeliningUtility.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVectorExtras.h"
-#include "llvm/Support/LogicalResult.h"
+//#include "llvm/Support/LogicalResult.h"
 #include <optional>
 #include <queue>
 
@@ -246,7 +246,7 @@ public:
     patterns.add<LowerWarpGroup>(context);
     GreedyRewriteConfig config;
 
-    if (applyPatternsGreedily(m, std::move(patterns), config).failed())
+    if (applyPatternsAndFoldGreedily(m, std::move(patterns), config).failed())
       signalPassFailure();
 
     if (failed(m.verify()))

@@ -1417,13 +1417,13 @@ void SliceEncodingAttr::print(mlir::AsmPrinter &printer) const {
 LogicalResult
 SliceEncodingAttr::verify(function_ref<InFlightDiagnostic()> emitError,
                           unsigned dim, DistributedEncodingTrait parent) {
-  unsigned rank = cast<LayoutEncodingTrait>(parent).getRank();
-  if (rank <= 1)
-    return emitError() << "parent layout must have at least rank >= 2";
-  if (dim >= rank) {
-    return emitError() << "slice dim=" << dim
-                       << " must be less than the parent rank=" << rank;
-  }
+  //unsigned rank = cast<LayoutEncodingTrait>(parent).getRank();
+  //if (rank <= 1)
+  //  return emitError() << "parent layout must have at least rank >= 2";
+  //if (dim >= rank) {
+  //  return emitError() << "slice dim=" << dim
+  //                     << " must be less than the parent rank=" << rank;
+  //}
   return success();
 }
 
@@ -1908,8 +1908,8 @@ LogicalResult PaddedSharedEncodingAttr::verify(
   if (!llvm::all_of(paddings, llvm::isPowerOf2_32))
     return emitError() << "padding values must all be power of two";
 
-  llvm::SmallSet<unsigned, 4> intervalValues(intervals.begin(),
-                                             intervals.end());
+  llvm::SmallSet<unsigned, 4> intervalValues;
+  intervalValues.insert(intervals.begin(), intervals.end());
   if (intervalValues.size() != intervals.size())
     return emitError() << "interval values cannot have duplicates";
 

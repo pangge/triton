@@ -8,6 +8,7 @@
 #include "triton/Dialect/Triton/IR/Dialect.h"
 #include "triton/Dialect/Triton/IR/DiscardableAttributes.h"
 #include "triton/Dialect/Triton/Transforms/Passes.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 namespace mlir::triton {
 
@@ -290,7 +291,7 @@ public:
     patterns.add<CombineReshapeReducePatterns>(context);
     patterns.add<RankedReduceDescriptorLoads>(context);
 
-    if (applyPatternsGreedily(m, std::move(patterns)).failed())
+    if (mlir::applyPatternsAndFoldGreedily(m, std::move(patterns)).failed())
       signalPassFailure();
   }
 };

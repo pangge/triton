@@ -48,7 +48,8 @@ ensureLayoutNotLargerThan(const LinearLayout &layout,
   auto bases = layout.getBases();
 
   auto kRegister = StringAttr::get(ctx, "register");
-  std::set<int32_t> broadcastedDims;
+  //std::set<int32_t> broadcastedDims;
+  SetVector<int32_t> broadcastedDims;
 
   for (auto outDim : llvm::enumerate(layout.getOutDimNames())) {
     auto outDimName = outDim.value();
@@ -90,7 +91,8 @@ ensureLayoutNotLargerThan(const LinearLayout &layout,
     std::vector<std::vector<int32_t>> newBasesRegister;
     for (auto [idx, basis] : llvm::enumerate(bases[kRegister])) {
       // Remove if it's broadcasted
-      if (broadcastedDims.find(idx) == broadcastedDims.end()) {
+      //if (broadcastedDims.find(idx) == broadcastedDims.end()) {
+      if (!broadcastedDims.contains(idx)) {
         newBasesRegister.push_back(std::move(basis));
       }
     }

@@ -27,7 +27,7 @@ void doTaskPartition(triton::FuncOp &funcOp, unsigned numWarpGroups) {
   DenseSet<int> allAsyncTasks;
   funcOp->walk([&](Operation *op) {
     auto asyncTasks = getAsyncTaskIds(op);
-    allAsyncTasks.insert_range(getAsyncTaskIds(op));
+    allAsyncTasks.insert(asyncTasks.begin(), asyncTasks.end());
   });
 
   if (!allAsyncTasks.empty())

@@ -2,7 +2,8 @@
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/UB/IR/UBOps.h"
 #include "mlir/IR/Dominance.h"
-#include "mlir/IR/ImplicitLocOpBuilder.h"
+//#include "mlir/IR/ImplicitLocOpBuilder.h"
+#include "triton/Dialect/TritonInstrument/IR/Utility.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Transforms/LoopInvariantCodeMotionUtils.h"
 #include "mlir/Transforms/RegionUtils.h"
@@ -283,7 +284,7 @@ static unsigned getIntTypeWidth(Type type) {
 }
 
 // Generate IR to compute the number of iterations of a loop.
-static Value computeNumIters(ImplicitLocOpBuilder &b, Value lowerBound,
+static Value computeNumIters(ccw::ImplicitLocOpBuilder &b, Value lowerBound,
                              Value upperBound, Value step) {
   // len(range(lb, ub, step)) = ceildiv(ub - lb, step)
   // This works even if step is negative.
@@ -293,13 +294,13 @@ static Value computeNumIters(ImplicitLocOpBuilder &b, Value lowerBound,
 }
 
 // Generate IR to compute the number of iterations of a loop.
-static Value computeNumIters(ImplicitLocOpBuilder &b, scf::ForOp loop) {
+static Value computeNumIters(ccw::ImplicitLocOpBuilder &b, scf::ForOp loop) {
   return computeNumIters(b, loop.getLowerBound(), loop.getUpperBound(),
                          loop.getStep());
 }
 
 // Cast an integer or index value to an integer or index `type`, if necessary.
-static Value castIntIfNecessary(ImplicitLocOpBuilder &b, Value value,
+static Value castIntIfNecessary(ccw::ImplicitLocOpBuilder &b, Value value,
                                 Type type) {
   if (value.getType() == type)
     return value;
@@ -315,7 +316,7 @@ static Value castIntIfNecessary(ImplicitLocOpBuilder &b, Value value,
 // live code paths, create a zero-valued constant where possible, otherwise use
 // a poison value. PTXAS appears to generate better code with zeros compared to
 // poison values.
-static Value createPoisonOrZero(ImplicitLocOpBuilder &b, Type type) {
+static Value createPoisonOrZero(ccw::ImplicitLocOpBuilder &b, Type type) {
   Type elTy = getElementTypeOrSelf(type);
   if (!elTy.isIntOrIndexOrFloat() ||
       (!isa<RankedTensorType>(type) && type != elTy))
@@ -332,7 +333,7 @@ static scf::YieldOp getYield(Region &body) {
   return cast<scf::YieldOp>(body.front().back());
 }
 
-static scf::IfOp eraseIfResults(ImplicitLocOpBuilder &b, scf::IfOp ifOp,
+static scf::IfOp eraseIfResults(ccw::ImplicitLocOpBuilder &b, scf::IfOp ifOp,
                                 llvm::BitVector indices,
                                 SmallVector<Value> replaceWith) {
   OpBuilder::InsertionGuard guard(b);
@@ -562,7 +563,7 @@ static void fuseOneLevel(LoopNestNode *parent, mlir::DominanceInfo &domInfo) {
 
   // Generate the computations of the fused loop bounds.
   Location loc = outer.getLoc();
-  ImplicitLocOpBuilder b(loc, outer);
+  ccw::ImplicitLocOpBuilder b(loc, outer);
   for (InnerLoop &loop : innerLoops) {
     intTyWidth = std::max(intTyWidth,
                           getIntTypeWidth(loop.op.getInductionVar().getType()));
@@ -605,9 +606,11 @@ static void fuseOneLevel(LoopNestNode *parent, mlir::DominanceInfo &domInfo) {
   // Generate a loop to compute the total number of iterations for inner loops
   // whose bounds are not outer loop invariant.
   IRMapping mapping;
-  auto peeledLen =
-      scf::ForOp::create(b, outer.getLowerBound(), outer.getUpperBound(),
-                         outer.getStep(), {totalIters});
+  //auto peeledLen =
+  //    scf::ForOp::create(b, outer.getLowerBound(), outer.getUpperBound(),
+  //                       outer.getStep(), {totalIters});
+  auto peeledLen = b.create<scf::ForOp, Value, Value, Value, ValueRange>(outer.getLowerBound(), outer.getUpperBound(), 
+		  outer.getStep(), {totalIters});
   totalIters = peeledLen.getRegionIterArg(0);
   mapping.map(outer.getInductionVar(), peeledLen.getInductionVar());
   b.setInsertionPointToStart(peeledLen.getBody());
@@ -1108,15 +1111,11 @@ static LogicalResult matchPositiveTripCount(scf::ForOp loop) {
       if (llvm::none_of(cmp->getUsers(),
                         [](Operation *op) { return isa<LLVM::AssumeOp>(op); }))
         continue;
-      if (cmp.getPredicate() == (loop.getUnsignedCmp()
-                                     ? arith::CmpIPredicate::ugt
-                                     : arith::CmpIPredicate::sgt) &&
+      if (cmp.getPredicate() == (arith::CmpIPredicate::sgt) &&
           cmp.getLhs() == loop.getUpperBound() &&
           cmp.getRhs() == loop.getLowerBound())
         return success();
-      if (cmp.getPredicate() == (loop.getUnsignedCmp()
-                                     ? arith::CmpIPredicate::ult
-                                     : arith::CmpIPredicate::slt) &&
+      if (cmp.getPredicate() == (arith::CmpIPredicate::slt) &&
           cmp.getLhs() == loop.getLowerBound() &&
           cmp.getRhs() == loop.getUpperBound())
         return success();
@@ -1133,7 +1132,7 @@ static LogicalResult speculateInnerLoopLength(scf::ForOp outerLoop,
                                               scf::ForOp innerLoop,
                                               mlir::DominanceInfo &domInfo) {
   Location loc = innerLoop.getLoc();
-  ImplicitLocOpBuilder b(loc, outerLoop);
+  ccw::ImplicitLocOpBuilder b(loc, outerLoop);
 
   // Check if the inner loop is known to execute at least once.
   if (succeeded(matchPositiveTripCount(innerLoop))) {

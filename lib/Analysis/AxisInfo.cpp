@@ -16,6 +16,10 @@
 namespace mlir::triton {
 namespace {
 
+ProgramPoint getProgramPointAfter(Operation* op) {
+  return ProgramPoint(op);
+}
+
 constexpr int64_t kMaxDivisor = highestPowOf2Divisor<int64_t>(0);
 
 template <typename... Args> int64_t gcd(int64_t a, int64_t b, Args... args) {
@@ -142,7 +146,7 @@ private:
   void setToEntryState(dataflow::Lattice<AxisInfo> *lattice) override {
     propagateIfChanged(
         lattice, lattice->join(
-                     AxisInfo::getPessimisticValueState(lattice->getAnchor())));
+                     AxisInfo::getPessimisticValueState(lattice->getPoint())));
   }
 
   void visitNonControlFlowArguments(
@@ -167,7 +171,8 @@ public:
       dataflow::Lattice<AxisInfo>>::getLatticeElement;
   using FuncAxisInfoMapT = DenseMap<FunctionOpInterface, AxisInfo>;
 
-  LogicalResult
+  //LogicalResult
+  void
   visitOperation(Operation *op,
                  ArrayRef<const dataflow::Lattice<AxisInfo> *> operands,
                  ArrayRef<dataflow::Lattice<AxisInfo> *> results) override;
@@ -1067,7 +1072,7 @@ AxisInfoAnalysis::AxisInfoAnalysis(DataFlowSolver &solver,
     callback(visitors);
 }
 
-LogicalResult AxisInfoAnalysis::visitOperation(
+void AxisInfoAnalysis::visitOperation(
     Operation *op, ArrayRef<const dataflow::Lattice<AxisInfo> *> operands,
     ArrayRef<dataflow::Lattice<AxisInfo> *> results) {
   // TODO: For sure not the right way to do this
@@ -1078,7 +1083,7 @@ LogicalResult AxisInfoAnalysis::visitOperation(
   AxisInfo curr = visitors.apply(op, operands);
   if (curr.getRank() == 0) {
     setAllToEntryStates(results);
-    return success();
+    return ;//success();
   }
   // override with hint
   auto newContiguity = curr.getContiguity();
@@ -1095,12 +1100,14 @@ LogicalResult AxisInfoAnalysis::visitOperation(
   // join all lattice elements
   for (auto *result : results)
     propagateIfChanged(result, result->join(curr));
-  return success();
+  //return success();
 }
 
 void AxisInfoAnalysis::visitForOpInductionVar(
     scf::ForOp op, ArrayRef<dataflow::Lattice<AxisInfo> *> argLattices) {
-  ProgramPoint *programPoint = getProgramPointAfter(op);
+  //ProgramPoint *programPoint = getProgramPointAfter(op);
+  ProgramPoint programPoint = getProgramPointAfter(op);
+
   const auto &lb =
       getLatticeElementFor(programPoint, op.getLowerBound())->getValue();
   const auto &step =
@@ -1119,7 +1126,8 @@ void AxisInfoAnalysis::visitWarpSpecializeExplicitCaptures(
     gpu::WarpSpecializePartitionsOp ws, const RegionSuccessor &successor,
     ArrayRef<dataflow::Lattice<AxisInfo> *> argLattices) {
   assert(!successor.isParent());
-  ProgramPoint *point = getProgramPointAfter(ws);
+  //ProgramPoint *point = getProgramPointAfter(ws);
+  ProgramPoint point = getProgramPointAfter(ws);
 
   for (auto [capture, argLattice] :
        llvm::zip(ws.getParentOp().getExplicitCaptures(), argLattices)) {
