@@ -110,9 +110,12 @@ LinearLayout buildReps(MLIRContext *ctx, const LinearLayout &src,
   // 1) It is in registers in both src and dst
   // 2) It is in the segment of smem (i.e., is not part of just one
   //    load/store)
-  SetVector<int32_t> srcRegs(llvm::from_range_t{}, flatten(src, kReg));
-  SetVector<int32_t> dstRegs(llvm::from_range_t{}, flatten(dst, kReg));
-  SetVector<int32_t> smemSegment(llvm::from_range_t{}, flatten(smem, kSegment));
+  auto flattenSrc = flatten(src, kReg);
+  auto flattenDst = flatten(dst, kReg);
+  auto flattenSmem = flatten(smem, kSegment);
+  SetVector<int32_t> srcRegs(flattenSrc.begin(), flattenSrc.end());
+  SetVector<int32_t> dstRegs(flattenDst.begin(), flattenDst.end());
+  SetVector<int32_t> smemSegment(flattenSmem.begin(), flattenSmem.end());
   SetVector<int32_t> segment;
   SetVector<int32_t> reps;
   for (auto s : smemSegment) {

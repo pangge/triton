@@ -17,6 +17,10 @@ namespace gluon = mlir::triton::gluon;
 
 namespace {
 
+RankedTensorType cloneWithEncoding(RankedTensorType type, ::mlir::Attribute encoding) {
+  return RankedTensorType::get(type.getShape(), type.getElementType(), encoding);
+}
+
 // Layout inference for AutoEncodingAttr -> always propagate AutoEncodingAttr to
 // results
 struct GluonInferLayoutInterface : public triton::DialectInferLayoutInterface {
@@ -117,7 +121,7 @@ void GluonDialect::initialize() {
 
 void SetAutoLayoutOp::build(OpBuilder &builder, OperationState &state,
                             Attribute enc, Value value) {
-  auto resTy = cast<RankedTensorType>(value.getType()).cloneWithEncoding(enc);
+  auto resTy = cloneWithEncoding(cast<RankedTensorType>(value.getType()), enc);
   return build(builder, state, resTy, value);
 }
 

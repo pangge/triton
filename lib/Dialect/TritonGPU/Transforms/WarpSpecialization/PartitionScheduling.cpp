@@ -312,9 +312,12 @@ struct OpClusters : public llvm::MapVector<Operation *, OpCluster *> {
   // Merge two clusters by merging their sets and clearing the other cluster,
   // marking it as dead.
   void merge(OpCluster *dst, OpCluster *src) {
-    dst->ops.insert_range(src->ops);
-    dst->defPartitions.insert_range(src->defPartitions);
-    dst->sinkPartitions.insert_range(src->sinkPartitions);
+    //dst->ops.insert_range(src->ops);
+    dst->ops.set_union(src->ops);
+    //dst->defPartitions.insert_range(src->defPartitions);
+    dst->defPartitions.set_union(src->defPartitions);
+    //dst->sinkPartitions.insert_range(src->sinkPartitions);
+    dst->sinkPartitions.set_union(src->sinkPartitions);
     for (Operation *op : src->ops)
       (*this)[op] = dst;
     src->ops.clear();

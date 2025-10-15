@@ -2,6 +2,7 @@
 #define TRITON_TRITONGPU_TRANSFORM_PIPELINE_PARTITION_H_
 
 #include "mlir/Support/LLVM.h"
+#include "mlir/Support/LogicalResult.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/SmallVector.h"

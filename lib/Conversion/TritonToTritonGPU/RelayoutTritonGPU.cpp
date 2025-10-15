@@ -16,6 +16,10 @@ using namespace triton;
 using namespace triton::gpu;
 namespace ttng = triton::nvidia_gpu;
 
+RankedTensorType cloneWithEncoding(RankedTensorType type, ::mlir::Attribute encoding) {
+  return RankedTensorType::get(type.getShape(), type.getElementType(), encoding);
+}
+
 // Given a tensor and its representation in tensor memory, determine its
 // distributed layout.
 RankedTensorType getTMEMTensorLayout(const TypeConverter *tc,
@@ -31,7 +35,7 @@ RankedTensorType getTMEMTensorLayout(const TypeConverter *tc,
     encoding = ttng::getTmemCompatibleLayout(
         tmemEnc.getBlockM(), tmemEnc.getBlockN(), type, numWarps);
   }
-  return type.cloneWithEncoding(encoding);
+  return cloneWithEncoding(type, encoding);
 }
 
 struct TMEMLoadOpPattern : public OpConversionPattern<ttng::TMEMLoadOp> {

@@ -79,7 +79,8 @@ class TaskIdBackwardPropagation
 public:
   using SparseBackwardDataFlowAnalysis::SparseBackwardDataFlowAnalysis;
 
-  LogicalResult
+  // LogicalResult
+  void
   visitOperation(Operation *op, ArrayRef<TaskIdLattice *> operands,
                  ArrayRef<const TaskIdLattice *> results) override;
 

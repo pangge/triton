@@ -11,7 +11,7 @@
 #include "triton/Dialect/TritonNvidiaGPU/IR/Dialect.h"
 #include "triton/Tools/LayoutUtils.h"
 #include "llvm/Support/Casting.h"
-#include "llvm/Support/LogicalResult.h"
+#include "mlir/Support/LogicalResult.h"
 
 // Provide custom directive handlers for declarative assemblyFormat.
 // They must be visible before including the generated op classes.

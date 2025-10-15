@@ -133,7 +133,7 @@ std::string translateLLVMIRToASM(llvm::Module &module,
   // module->print(llvm::outs(), nullptr);
 
   // create machine
-  module.setTargetTriple(Triple(triple));
+  module.setTargetTriple(triple);
   auto machine = createTargetMachine(&module, proc, enable_fp_fusion, features);
   // set data layout
   module.setDataLayout(machine->createDataLayout());
@@ -320,13 +320,14 @@ void init_triton_llvm(py::module &&m) {
         CGSCCAnalysisManager cgam;
         ModuleAnalysisManager mam;
 
-        if (arch.empty()) {
-          llvm::TargetLibraryInfoImpl TLII(mod->getTargetTriple());
-          TLII.disableAllFunctions();
-          fam.registerPass([TLII = std::move(TLII)] {
-            return llvm::TargetLibraryAnalysis(TLII);
-          });
-        }
+	// by ccw
+        //if (arch.empty()) {
+        //  llvm::TargetLibraryInfoImpl TLII(mod->getTargetTriple());
+        //  TLII.disableAllFunctions();
+        //  fam.registerPass([TLII = std::move(TLII)] {
+        //    return llvm::TargetLibraryAnalysis(TLII);
+        //  });
+        //}
 
         PassInstrumentationCallbacks *instrCbPtr = nullptr;
         PassInstrumentationCallbacks passInstrCb;
@@ -477,7 +478,7 @@ void init_triton_llvm(py::module &&m) {
         std::string message = "Failed to parse library at " + path;
         throw std::invalid_argument(message);
       }
-      libMod->setTargetTriple(Triple(dstMod->getTargetTriple()));
+      libMod->setTargetTriple(dstMod->getTargetTriple());
       libMod->setDataLayout(dstMod->getDataLayout());
 
       std::unordered_set<std::string> externalFns;

@@ -266,11 +266,12 @@ Value matrixVectorProd(TritonLLVMOpBuilder &b, const LinearLayout &A, Value x) {
     return terms[0];
   };
 
-  auto orPart = treeReduce(
-      ors, [&b](Value x, Value y) { return b.or_(x, y, /*disjoint=*/true); });
-  auto xorPart =
-      treeReduce(xors, [&b](Value x, Value y) { return b.xor_(x, y); });
-  return b.or_(orPart, xorPart, /*disjoint=*/true);
+  //auto orPart = treeReduce(
+  //    ors, [&b](Value x, Value y) { return b.or_(x, y, /*disjoint=*/true); });
+  //auto xorPart =
+  //    treeReduce(xors, [&b](Value x, Value y) { return b.xor_(x, y); });
+  //return b.or_(orPart, xorPart, /*disjoint=*/true);
+  return zero;
 }
 
 } // namespace triton::gpu
@@ -636,11 +637,11 @@ SmallVector<Value> lowerLdSt(
           reps.apply({{kReg, j}, {kLane, 0}, {kWarp, 0}})[0].second;
       auto regIdxAddI8 = regIdxAdd * (bitwidth / 8);
       Value innerOffset = b.add(offset, b.i32_val(regIdxAddI8));
-      auto vecAddr =
-          b.gep(smemPtrTy, i8_ty, smemBase, calcPaddedOffset(innerOffset),
-                LLVM::GEPNoWrapFlags::inbounds);
-      llvm::append_range(outVals,
-                         lowerInst(rewriter, loc, vals, vecAddr, i + j, vecTy));
+      //auto vecAddr =
+      //    b.gep(smemPtrTy, i8_ty, smemBase, calcPaddedOffset(innerOffset),
+      //          LLVM::GEPNoWrapFlags::inbounds);
+      //llvm::append_range(outVals,
+      //                   lowerInst(rewriter, loc, vals, vecAddr, i + j, vecTy));
     }
   }
 
@@ -955,8 +956,8 @@ Value createLLVMIntegerConstant(OpBuilder &builder, Location loc, short width,
 LLVM::CallOp createLLVMCallOp(OpBuilder &builder, Location loc,
                               LLVMFuncOp funcOp, ValueRange args) {
   auto op = builder.create<LLVM::CallOp>(loc, funcOp, args);
-  op.getProperties().setOpBundleSizes(builder.getDenseI32ArrayAttr({}));
-  op.getProperties().setOperandSegmentSizes({static_cast<int>(args.size()), 0});
+  //op.getProperties().setOpBundleSizes(builder.getDenseI32ArrayAttr({}));
+  //op.getProperties().setOperandSegmentSizes({static_cast<int>(args.size()), 0});
   return op;
 }
 
@@ -965,8 +966,8 @@ createLLVMIntrinsicCallOp(OpBuilder &builder, Location loc, StringRef intrinsic,
                           TypeRange types, ValueRange args) {
   auto op = builder.create<LLVM::CallIntrinsicOp>(loc, types, args);
   op.getProperties().setIntrin(builder.getStringAttr(intrinsic));
-  op.getProperties().setOpBundleSizes(builder.getDenseI32ArrayAttr({}));
-  op.getProperties().setOperandSegmentSizes({static_cast<int>(args.size()), 0});
+  //op.getProperties().setOpBundleSizes(builder.getDenseI32ArrayAttr({}));
+  //op.getProperties().setOperandSegmentSizes({static_cast<int>(args.size()), 0});
   return op;
 }
 

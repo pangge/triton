@@ -68,8 +68,8 @@ struct ConvertProtonAMDGPUToLLVM
                 "Invalid AMDGPU chipset name: " + this->arch);
       return signalPassFailure();
     }
-    mlir::populateGpuToROCDLConversionPatterns(
-        typeConverter, patterns, mlir::gpu::amd::HIP, *maybeChipset);
+    //mlir::populateGpuToROCDLConversionPatterns(
+    //    typeConverter, patterns, mlir::gpu::amd::HIP, *maybeChipset);
     mlir::cf::populateControlFlowToLLVMConversionPatterns(typeConverter,
                                                           patterns);
     auto convTarget = ProtonLLVMConversionTarget(*context);

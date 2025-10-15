@@ -222,7 +222,7 @@ public:
     // elementwise(splat(a), splat(b), ...) => splat(elementwise(a, b, ...))
     patterns.add<MoveSplatAfterElementwisePattern>(context);
 
-    if (applyPatternsGreedily(m, std::move(patterns)).failed())
+    if (mlir::applyPatternsAndFoldGreedily(m, std::move(patterns)).failed())
       signalPassFailure();
   }
 };

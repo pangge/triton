@@ -13,6 +13,7 @@
 #include "triton/Dialect/TritonNvidiaGPU/Transforms/Passes.h"
 #include "triton/Dialect/TritonNvidiaGPU/Transforms/TMAUtilities.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 namespace mlir {
 namespace triton {
@@ -199,7 +200,7 @@ public:
     patterns.add<TMALoadLowering, TMAGatherLowering, TMAStoreLowering,
                  TMAScatterLowering, TMAReduceLowering, TMACreateDescLowering>(
         context);
-    if (applyPatternsGreedily(m, std::move(patterns)).failed())
+    if (mlir::applyPatternsAndFoldGreedily(m, std::move(patterns)).failed())
       signalPassFailure();
   }
 };

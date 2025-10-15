@@ -49,12 +49,12 @@ public:
       loop->removeAttr(loopUnrollFactorAttrName);
       LDBG("Unrolling loop by " << unrollFactor << " times\n" << loop);
       auto resultLoops = loopUnrollByFactor(loop, unrollFactor);
-      // Do not pipeline the epilog loop.
-      if (succeeded(resultLoops) && resultLoops->epilogueLoopOp) {
-        (*resultLoops->epilogueLoopOp)
-            ->setAttr(pipelineStagesAttrName,
-                      mlir::IntegerAttr::get(IntegerType::get(ctx, 32), 1));
-      }
+      // Do not pipeline the epilog loop. ccw modified at 2025/10/09!
+      // if (succeeded(resultLoops) && resultLoops->epilogueLoopOp) {
+      //   (*resultLoops->epilogueLoopOp)
+      //       ->setAttr(pipelineStagesAttrName,
+      //                 mlir::IntegerAttr::get(IntegerType::get(ctx, 32), 1));
+      // }
     }
   }
 };

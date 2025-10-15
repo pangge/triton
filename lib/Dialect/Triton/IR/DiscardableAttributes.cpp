@@ -9,7 +9,8 @@ filterDiscardableAttrs(Operation *op, ArrayRef<StringRef> allowList) {
   for (auto attrName : allowList) {
     Attribute attr = op->getDiscardableAttr(attrName);
     if (attr)
-      propagatedAttrs.emplace_back(attrName, attr);
+      //propagatedAttrs.emplace_back(attrName, attr);
+      propagatedAttrs.emplace_back(StringAttr::get(op->getContext(), attrName), attr);
   }
   return propagatedAttrs;
 }

@@ -7,7 +7,35 @@
 #include "mlir/Interfaces/ControlFlowInterfaces.h"
 #include <deque>
 
+namespace llvm {
+
+//using IterT = llvm::ilist_iterator<mlir::Operation>;
+using IterT = mlir::Block::iterator;
+
+template <>
+struct DenseMapInfo<IterT> {
+  static inline IterT getEmptyKey() {
+    return IterT();
+  }
+  static inline IterT getTombstoneKey() {
+    return IterT(nullptr);
+  }
+  static unsigned getHashValue(IterT it) {
+    return DenseMapInfo<mlir::Operation *>::getHashValue(&*it);
+  }
+  static bool isEqual(IterT lhs,
+                      IterT rhs) {
+    return lhs == rhs;
+  }
+};
+} // namespace llvm
+
+
 namespace mlir {
+
+bool isValid(Block::iterator iter) {
+  return iter.getNodePtr();
+}
 
 void MembarOrFenceAnalysis::run(FuncBlockInfoMapT &funcBlockInfoMap) {
   FunctionOpInterface funcOp =
@@ -54,7 +82,7 @@ void MembarOrFenceAnalysis::resolve(FunctionOpInterface funcOp,
     auto inputBlockInfo = inputBlockInfoMap[block];
     SmallVector<VirtualBlock> successors;
     Block::iterator startIt =
-        block.second.isValid() ? std::next(block.second) : block.first->begin();
+        isValid(block.second) ? std::next(block.second) : block.first->begin();
     for (Operation &op : llvm::make_range(startIt, block.first->end())) {
       if (op.hasTrait<OpTrait::IsTerminator>() ||
           isa<RegionBranchOpInterface>(op)) {
@@ -96,8 +124,8 @@ void MembarOrFenceAnalysis::resolve(FunctionOpInterface funcOp,
     auto maxIt = llvm::max_element(virtualBlocks, [&](auto &lhs, auto &rhs) {
       assert(lhs.first.first == rhs.first.first);
       Block::iterator lhsIt = lhs.first.second, rhsIt = rhs.first.second;
-      return !lhsIt.isValid() ||
-             (rhsIt.isValid() && lhsIt->isBeforeInBlock(&*rhsIt));
+      return !isValid(lhsIt) ||
+             (isValid(rhsIt) && lhsIt->isBeforeInBlock(&*rhsIt));
     });
 
     funcBlockInfo.join(maxIt->second);

@@ -314,7 +314,7 @@ CoarseSchedule::Cluster schedulePrologueAndEpilogue(scf::ForOp forOp,
       SetVector<Operation *> backwardSlice;
       BackwardSliceOptions opt;
       opt.omitBlockArguments = true;
-      opt.omitUsesFromAbove = false;
+      //opt.omitUsesFromAbove = false;
       (void)getBackwardSlice((Operation *)op, &backwardSlice, opt);
 
       for (auto op : backwardSlice) {

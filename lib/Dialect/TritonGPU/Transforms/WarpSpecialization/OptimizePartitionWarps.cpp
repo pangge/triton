@@ -14,6 +14,11 @@ using namespace triton;
 using namespace triton::gpu;
 namespace ttng = triton::nvidia_gpu;
 
+RankedTensorType cloneWithEncoding(RankedTensorType type, ::mlir::Attribute encoding) {
+  return RankedTensorType::get(type.getShape(), type.getElementType(), encoding);
+}
+
+
 //===----------------------------------------------------------------------===//
 // relayoutWarps
 //===----------------------------------------------------------------------===//
@@ -91,7 +96,7 @@ static LogicalResult relayoutWarps(ModuleAxisInfoAnalysis &axisInfo,
   // Start by removing all tensor encodings.
   mlir::AttrTypeReplacer replacer;
   replacer.addReplacement(
-      [](RankedTensorType ty) { return ty.cloneWithEncoding({}); });
+      [](RankedTensorType ty) { return cloneWithEncoding(ty, {}); });
   // But don't remove them from the tensors inside descriptors.
   replacer.addReplacement([](TensorDescType ty) -> std::pair<Type, WalkResult> {
     return {ty, WalkResult::skip()};
@@ -162,8 +167,14 @@ static LogicalResult optimizePartitionNumWarps(ModuleAxisInfoAnalysis &axisInfo,
   for (Region *partition : wsOp.getPartitionRegions()) {
     unsigned &tensorRegs = maxTensorRegs.emplace_back(0);
     partition->walk([&](Operation *op) {
-      for (Type type :
-           llvm::concat<Type>(op->getOperandTypes(), op->getResultTypes())) {
+      SmallVector<Type> range;
+      auto operandTypes = op->getOperandTypes();
+      range.append(operandTypes.begin(), operandTypes.end());
+      auto resultTypes = op->getResultTypes();	
+      range.append(resultTypes.begin(), resultTypes.end());
+      //for (Type type :
+      //     llvm::concat<Type>(op->getOperandTypes(), op->getResultTypes())) {
+      for (Type type : range) {
         if (auto tensor = dyn_cast<RankedTensorType>(type))
           tensorRegs = std::max(tensorRegs, getTensorNumI32Regs(tensor));
       }

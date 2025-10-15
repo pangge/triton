@@ -9,7 +9,7 @@
 #include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/PriorityWorklist.h"
 #include "llvm/Support/Debug.h"
-#include "llvm/Support/LogicalResult.h"
+#include "mlir/Support/LogicalResult.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/xxhash.h"
 
@@ -25,6 +25,10 @@ namespace mlir::triton::gluon {
 #define LDBG(X) LLVM_DEBUG(DBGS() << X << "\n")
 
 namespace {
+
+RankedTensorType cloneWithEncoding(RankedTensorType type, ::mlir::Attribute encoding) {
+  return RankedTensorType::get(type.getShape(), type.getElementType(), encoding);
+}
 
 bool isAutoEncodingTensorType(Type ty) {
   auto tensorTy = dyn_cast<RankedTensorType>(ty);
@@ -207,7 +211,7 @@ LogicalResult inferAutoLayouts(FuncOp func) {
   for (auto &[val, info] : valueToEncoding) {
     auto existingTy = cast<RankedTensorType>(val.getType());
     assert(isa<gluon::AutoEncodingAttr>(existingTy.getEncoding()));
-    auto ty = existingTy.cloneWithEncoding(info.encoding);
+    auto ty = cloneWithEncoding(existingTy, info.encoding);
     val.setType(ty);
 
     if (auto opResult = dyn_cast<OpResult>(val)) {

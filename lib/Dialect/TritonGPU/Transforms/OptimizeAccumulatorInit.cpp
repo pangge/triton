@@ -5,6 +5,7 @@
 #include "triton/Dialect/TritonGPU/Transforms/Passes.h"
 #include "triton/Dialect/TritonGPU/Transforms/Utility.h"
 #include "triton/Dialect/TritonNvidiaGPU/IR/Dialect.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 namespace mlir {
 namespace triton {
@@ -313,7 +314,7 @@ public:
     // Cleanup unused init values in tmem allocs
     mlir::RewritePatternSet patterns(m.getContext());
     patterns.add<TMEMAllocWithUnusedInit>(m.getContext());
-    if (applyPatternsGreedily(m, std::move(patterns)).failed())
+    if (mlir::applyPatternsAndFoldGreedily(m, std::move(patterns)).failed())
       signalPassFailure();
   }
 };

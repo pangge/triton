@@ -134,8 +134,10 @@ public:
       auto offsetWithRange = getExpandedOffsetWithRange(builder, loc, i);
 
       // Compare with lower bound
+      //Value lowerBound = builder.create<mlir::arith::ConstantIntOp>(
+      //    loc, builder.getI64Type(), 0);
       Value lowerBound = builder.create<mlir::arith::ConstantIntOp>(
-          loc, builder.getI64Type(), 0);
+          loc, (int64_t)0, 64);
       Value splatLowerBound = builder.create<triton::SplatOp>(
           loc, offsetWithRange.getType(), lowerBound);
       Value cmpLower = builder.create<arith::CmpIOp>(

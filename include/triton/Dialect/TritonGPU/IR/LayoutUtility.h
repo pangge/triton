@@ -1,4 +1,5 @@
-#include <llvm/Support/LogicalResult.h>
+//#include <llvm/Support/LogicalResult.h>
+#include <mlir/Support/LogicalResult.h>
 #include <triton/Dialect/TritonGPU/IR/Dialect.h>
 
 namespace mlir::triton::gpu {

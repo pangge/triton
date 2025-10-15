@@ -72,8 +72,8 @@ struct LLVMDILocalVariablePass
 
       // TODO: current parameter only for first viable result for now
       diLocalVarAttr = LLVM::DILocalVariableAttr::get(
-          context, diLocalScopeAttr, nameAttr, diFileAttr, 0, 0, 0, diTypeAttr,
-          diFlags);
+          context, diLocalScopeAttr, nameAttr, diFileAttr, 0, 0, 0, diTypeAttr/*,
+          diFlags*/);
 
       LLVM::DIExpressionAttr diExprAttr = LLVM::DIExpressionAttr::get(context);
       // Note: must set insertion point before calling create since it will
@@ -236,8 +236,8 @@ struct LLVMDILocalVariablePass
     auto subprogramAttr = LLVM::DISubprogramAttr::get(
         context, distinctId, compileUnitAttr, fileAttr, funcNameAttr,
         funcNameAttr, fileAttr, /*line=*/line, /*scopeline=*/line,
-        subprogramFlags, subroutineTypeAttr, /*retainNodes=*/{},
-        /*annotations=*/{});
+        subprogramFlags, subroutineTypeAttr);
+	//, /*retainNodes=*/{}, /*annotations=*/{});
 
     return subprogramAttr;
   }

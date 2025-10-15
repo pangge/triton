@@ -110,7 +110,7 @@ void TaskIdBackwardPropagation::propagateToParent(Operation *op,
   }
 }
 
-LogicalResult TaskIdBackwardPropagation::visitOperation(
+void TaskIdBackwardPropagation::visitOperation(
     Operation *op, ArrayRef<TaskIdLattice *> operands,
     ArrayRef<const TaskIdLattice *> results) {
   // Already annotated
@@ -133,7 +133,7 @@ LogicalResult TaskIdBackwardPropagation::visitOperation(
       }
     }
 
-    return success();
+    return ;//success();
   }
   // If it is not annotated by the user, propagate from results to the
   // operands
@@ -154,7 +154,7 @@ LogicalResult TaskIdBackwardPropagation::visitOperation(
     }
   }
 
-  return success();
+  return ;//success();
 }
 
 void TaskIdBackwardPropagation::visitBranchOperand(OpOperand &operand) {

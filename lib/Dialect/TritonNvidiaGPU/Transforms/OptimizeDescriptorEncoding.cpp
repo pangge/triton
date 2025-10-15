@@ -16,7 +16,13 @@
 
 namespace ttg = mlir::triton::gpu;
 
+using namespace mlir;
+
 namespace {
+
+RankedTensorType cloneWithEncoding(RankedTensorType type, ::mlir::Attribute encoding) {
+  return RankedTensorType::get(type.getShape(), type.getElementType(), encoding);
+}
 
 struct UseInfo {
   TypedValue<TensorDescType> descriptor;
@@ -218,7 +224,7 @@ TensorDescType getTensorDescTypeWithEncoding(Operation *op,
                                              Attribute encoding) {
   auto sharedEnc = cast<triton::gpu::SharedEncodingTrait>(encoding);
   encoding = updateEncodingForShape(op, sharedEnc, existingTy);
-  auto blockTy = existingTy.cloneWithEncoding(encoding);
+  auto blockTy = cloneWithEncoding(existingTy, encoding);
   return TensorDescType::get(existingTy.getContext(), blockTy);
 }
 

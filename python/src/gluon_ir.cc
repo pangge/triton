@@ -22,7 +22,7 @@ namespace tt = triton;
 namespace ttg = triton::gpu;
 namespace ttng = triton::nvidia_gpu;
 namespace gluon = mlir::triton::gluon;
-namespace ttag = mlir::triton::amdgpu;
+//namespace ttag = mlir::triton::amdgpu;
 
 // Helper to check if an MLIR type or attribute has a verifier method.
 template <typename AttrOrType>
@@ -478,7 +478,12 @@ void init_gluon_ir(py::module &&m) {
               Attribute layout) -> Type {
              auto ctx = self.getContext();
              auto blockTy = cast<RankedTensorType>(blockType);
-             auto blockTyLayout = blockTy.cloneWithEncoding(layout);
+	     auto blockTyLayout = RankedTensorType::get(
+                 blockTy.getShape(),
+                 blockTy.getElementType(),
+                 layout
+             );
+             //auto blockTyLayout = blockTy.cloneWithEncoding(layout);
              return triton::TensorDescType::get(ctx, blockTyLayout, isSigned);
            })
       .def("is_convert_layout_trivial",
@@ -747,58 +752,58 @@ void init_gluon_ir(py::module &&m) {
              return self.create<ttg::WarpSpecializeOp>(
                  resultTypes, explicitCaptures, partitionNumWarps);
            })
-      .def("create_buffer_load",
-           [](GluonOpBuilder &self, Type resultType, Value ptr, Value offsets,
-              Value mask, Value other, tt::CacheModifier cache) -> Value {
-             return self.create<ttag::BufferLoadOp>(resultType, ptr, offsets,
-                                                    Value() /*stride*/, cache,
-                                                    mask, other);
-           })
-      .def("create_buffer_store",
-           [](GluonOpBuilder &self, Value storedValue, Value ptr, Value offsets,
-              Value mask, tt::CacheModifier cache) {
-             self.create<ttag::BufferStoreOp>(storedValue, ptr, offsets,
-                                              Value() /*stride*/, cache, mask);
-           })
-      .def("create_buffer_atomic_rmw",
-           [](GluonOpBuilder &self, tt::RMWOp op, Value ptr, Value offsets,
-              Value value, tt::MemSemantic sem, tt::MemSyncScope scope,
-              Value mask) -> Value {
-             return self.create<ttag::BufferAtomicRMWOp>(
-                 value.getType(), op, ptr, offsets, value, Value() /*stride*/,
-                 sem, scope, mask);
-           })
-      .def("create_buffer_load_to_local",
-           [](GluonOpBuilder &self, Value dest, Value ptr, Value offsets,
-              Value mask, Value other, Value stride,
-              tt::CacheModifier cacheModifier) {
-             self.create<ttag::BufferLoadToLocalOp>(
-                 dest, ptr, offsets, mask, other, stride, cacheModifier);
-           })
+      //.def("create_buffer_load",
+      //     [](GluonOpBuilder &self, Type resultType, Value ptr, Value offsets,
+      //        Value mask, Value other, tt::CacheModifier cache) -> Value {
+      //       return self.create<ttag::BufferLoadOp>(resultType, ptr, offsets,
+      //                                              Value() /*stride*/, cache,
+      //                                              mask, other);
+      //     })
+      //.def("create_buffer_store",
+      //     [](GluonOpBuilder &self, Value storedValue, Value ptr, Value offsets,
+      //        Value mask, tt::CacheModifier cache) {
+      //       self.create<ttag::BufferStoreOp>(storedValue, ptr, offsets,
+      //                                        Value() /*stride*/, cache, mask);
+      //     })
+      //.def("create_buffer_atomic_rmw",
+      //     [](GluonOpBuilder &self, tt::RMWOp op, Value ptr, Value offsets,
+      //        Value value, tt::MemSemantic sem, tt::MemSyncScope scope,
+      //        Value mask) -> Value {
+      //       return self.create<ttag::BufferAtomicRMWOp>(
+      //           value.getType(), op, ptr, offsets, value, Value() /*stride*/,
+      //           sem, scope, mask);
+      //     })
+      //.def("create_buffer_load_to_local",
+      //     [](GluonOpBuilder &self, Value dest, Value ptr, Value offsets,
+      //        Value mask, Value other, Value stride,
+      //        tt::CacheModifier cacheModifier) {
+      //       self.create<ttag::BufferLoadToLocalOp>(
+      //           dest, ptr, offsets, mask, other, stride, cacheModifier);
+      //     })
       .def("create_make_tensor_descriptor",
            [](TritonOpBuilder &self, Type resultTy, Value &base,
               std::vector<Value> &shape, std::vector<Value> &strides,
               tt::PaddingOption paddingOption) -> Value {
              return self.create<tt::MakeTensorDescOp>(resultTy, base, shape,
                                                       strides, paddingOption);
-           })
-      .def("create_async_tdm_copy_global_to_local",
-           [](GluonOpBuilder &self, Value descPtr, std::vector<Value> &indices,
-              Value result) {
-             Value pred = self.create<arith::ConstantIntOp>(1, 1);
-             self.create<ttag::AsyncTDMCopyGlobalToLocalOp>(descPtr, indices,
-                                                            result, pred);
-           })
-      .def("create_async_tdm_copy_local_to_global",
-           [](GluonOpBuilder &self, Value descPtr, std::vector<Value> &indices,
-              Value src) {
-             self.create<ttag::AsyncTDMCopyLocalToGlobalOp>(descPtr, indices,
-                                                            src);
-           })
-      .def("create_async_tdm_wait", [](GluonOpBuilder &self, int num) {
-        ValueRange tokens;
-        self.create<ttag::AsyncTDMWait>(tokens, num);
-      });
+           });
+      //.def("create_async_tdm_copy_global_to_local",
+      //     [](GluonOpBuilder &self, Value descPtr, std::vector<Value> &indices,
+      //        Value result) {
+      //       Value pred = self.create<arith::ConstantIntOp>(1, 1);
+      //       self.create<ttag::AsyncTDMCopyGlobalToLocalOp>(descPtr, indices,
+      //                                                      result, pred);
+      //     })
+      //.def("create_async_tdm_copy_local_to_global",
+      //     [](GluonOpBuilder &self, Value descPtr, std::vector<Value> &indices,
+      //        Value src) {
+      //       self.create<ttag::AsyncTDMCopyLocalToGlobalOp>(descPtr, indices,
+      //                                                      src);
+      //     })
+      //.def("create_async_tdm_wait", [](GluonOpBuilder &self, int num) {
+      //  ValueRange tokens;
+      //  self.create<ttag::AsyncTDMWait>(tokens, num);
+      //});
 
   py::class_<ttg::WarpSpecializeOp, OpState>(m, "WarpSpecializeOp",
                                              py::module_local())

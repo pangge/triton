@@ -67,11 +67,11 @@ static void expandLoops(ModuleOp moduleOp) {
       if (isEpilogue) {
         // Return false for the predicate of the peeled iteration
         return rewriter.create<mlir::arith::ConstantIntOp>(
-            predOp.getLoc(), predOp.getResult().getType(), 0);
+            predOp.getLoc(), 0, predOp.getResult().getType());
       } else {
         if (predOp.getStage() == predOp.getMaxStage() - 1) {
           return rewriter.create<mlir::arith::ConstantIntOp>(
-              predOp.getLoc(), predOp.getResult().getType(), 1);
+              predOp.getLoc(), 1, predOp.getResult().getType());
         } else {
           OpBuilder::InsertionGuard guard(rewriter);
           rewriter.setInsertionPoint(op);
@@ -185,7 +185,7 @@ struct PipelinePass : public impl::TritonGPUPipelineBase<PipelinePass> {
         getOperation().getContext()->getLoadedDialect<arith::ArithDialect>();
     RewritePatternSet patterns(getOperation().getContext());
     arithDialect->getCanonicalizationPatterns(patterns);
-    if (applyPatternsGreedily(getOperation(), std::move(patterns)).failed())
+    if (mlir::applyPatternsAndFoldGreedily(getOperation(), std::move(patterns)).failed())
       return signalPassFailure();
 
     {

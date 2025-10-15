@@ -4,6 +4,7 @@
 #include "mlir/Transforms/CSE.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "llvm/ADT/EquivalenceClasses.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 using namespace mlir;
 
@@ -21,7 +22,8 @@ public:
     return std::nullopt;
   }
   void setKnownEquivalence(Value a, Value b, bool eq) {
-    equalValues.insert_or_assign(normalizeKey(a, b), eq);
+    // equalValues.insert_or_assign(normalizeKey(a, b), eq);
+    equalValues[normalizeKey(a, b)] = eq;
   }
 
 private:
@@ -125,10 +127,10 @@ static void loopCSE(scf::ForOp loop) {
   // For each equivalence class, replace all other args in the class with one.
   for (auto it = equivalentArgs.begin(), end = equivalentArgs.end(); it != end;
        ++it) {
-    if (!(*it)->isLeader())
+    if (!(it->isLeader()))
       continue;
     SmallVector<int> eqArgs;
-    for (auto mIt = equivalentArgs.member_begin(**it);
+    for (auto mIt = equivalentArgs.member_begin(it);
          mIt != equivalentArgs.member_end(); ++mIt)
       eqArgs.push_back(*mIt);
     assert(eqArgs.size() > 1);
@@ -171,7 +173,7 @@ struct LoopAwareCSE
     // values, unused results, etc.).
     RewritePatternSet patterns(&getContext());
     scf::ForOp::getCanonicalizationPatterns(patterns, &getContext());
-    if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))))
+    if (failed(mlir::applyPatternsAndFoldGreedily(getOperation(), std::move(patterns))))
       return signalPassFailure();
   }
 };

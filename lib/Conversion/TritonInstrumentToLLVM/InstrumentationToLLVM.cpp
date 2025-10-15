@@ -19,6 +19,11 @@ namespace ttg = tt::gpu;
 namespace tti = mlir::triton::instrument;
 namespace ttng = mlir::triton::nvidia_gpu;
 
+using namespace mlir;
+RankedTensorType cloneWithEncoding(RankedTensorType type, ::mlir::Attribute encoding) {
+  return RankedTensorType::get(type.getShape(), type.getElementType(), encoding);
+}
+
 ////////////////////////////////////////////
 // Utility functions
 ////////////////////////////////////////////
@@ -114,7 +119,7 @@ Value convertAndBroadcast(OpBuilder &b, Location loc, Value tensor, int dim,
   auto slicedLayout =
       ttg::SliceEncodingAttr::get(b.getContext(), dim, encoding);
   tensor = b.create<ttg::ConvertLayoutOp>(
-      loc, tensorType.cloneWithEncoding(slicedLayout), tensor);
+      loc, cloneWithEncoding(tensorType, slicedLayout), tensor);
   tensor = tti::expandOuterSlicedDim(b, loc, tensor);
   tensor = b.create<tt::BroadcastOp>(loc, resultType, tensor);
   return tensor;
@@ -123,7 +128,7 @@ Value convertAndBroadcast(OpBuilder &b, Location loc, Value tensor, int dim,
 Value createConvertLayout(OpBuilder &b, Location loc, Value tensor,
                           Attribute encoding) {
   RankedTensorType dstType =
-      cast<RankedTensorType>(tensor.getType()).cloneWithEncoding(encoding);
+      cloneWithEncoding(cast<RankedTensorType>(tensor.getType()), encoding);
   return b.create<ttg::ConvertLayoutOp>(loc, dstType, tensor);
 }
 
@@ -313,7 +318,7 @@ struct BufferPointersOpConversion
       assert(op.getMemType() == tti::MemType::TENSOR_MEM &&
              "Unsupported memory type");
       TritonLLVMOpBuilder b(loc, rewriter);
-      base = rewriter.create<nvgpu::TensorMemoryBaseAddress>(loc);
+      //base = rewriter.create<nvgpu::TensorMemoryBaseAddress>(loc);
       base = b.ptrtoint(i32_ty, base);
     }
     bufPointers = rewriter.create<arith::AddIOp>(
