@@ -58,6 +58,6 @@ void SimplifyControlFlow::runOnOperation() {
   GreedyRewriteConfig config;
   // This is intended to run before AutoLayouts are resolved, in which case
   // CSEing constants can lead to additional layout conflicts.
-  config.enableConstantCSE(false);
+  //config.enableConstantCSE(false);
   (void)applyPatternsAndFoldGreedily(getOperation(), std::move(patterns), config);
 }
