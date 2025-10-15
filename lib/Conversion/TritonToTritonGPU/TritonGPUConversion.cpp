@@ -13,7 +13,7 @@
 using namespace mlir;
 using namespace mlir::triton::gpu;
 
-RankedTensorType cloneWithEncoding(RankedTensorType type, ::mlir::Attribute encoding) {
+inline RankedTensorType cloneWithEncoding(RankedTensorType type, ::mlir::Attribute encoding) {
   return RankedTensorType::get(type.getShape(), type.getElementType(), encoding);
 }
 
