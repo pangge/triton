@@ -24,8 +24,8 @@ struct SimplifyControlFlow
 };
 } // namespace
 
-SmallVector<RegisteredOperationName>
-getRegisteredOperationsByDialect(MLIRContext* context, StringRef dialectName) {
+inline SmallVector<RegisteredOperationName>
+getRegisteredOperationsByDialectByCCW(MLIRContext* context, StringRef dialectName) {
   if (dialectName.empty())
     return {};
 
@@ -47,10 +47,10 @@ void SimplifyControlFlow::runOnOperation() {
       patterns);
   ctx->getLoadedDialect<cf::ControlFlowDialect>()->getCanonicalizationPatterns(
       patterns);
-  for (mlir::RegisteredOperationName op : getRegisteredOperationsByDialect(ctx,
+  for (mlir::RegisteredOperationName op : getRegisteredOperationsByDialectByCCW(ctx,
            scf::SCFDialect::getDialectNamespace()))
     op.getCanonicalizationPatterns(patterns, ctx);
-  for (mlir::RegisteredOperationName op : getRegisteredOperationsByDialect(ctx,
+  for (mlir::RegisteredOperationName op : getRegisteredOperationsByDialectByCCW(ctx,
            cf::ControlFlowDialect::getDialectNamespace()))
     op.getCanonicalizationPatterns(patterns, ctx);
   populateForOpDeadArgumentElimination(patterns);
