@@ -278,15 +278,15 @@ void init_triton_llvm(py::module &&m) {
                                 const std::string proc,
                                 const std::string features) {
     std::string error;
-    llvm::Triple targetTriple(triple);
-    auto target = llvm::TargetRegistry::lookupTarget(targetTriple, error);
+    //llvm::Triple targetTriple(triple);
+    auto target = llvm::TargetRegistry::lookupTarget(triple, error);
     if (!target) {
       throw std::runtime_error("target lookup error: " + error);
     }
     llvm::TargetOptions opt;
     // Target machine is only used to create the data layout.
     std::unique_ptr<llvm::TargetMachine> machine{target->createTargetMachine(
-        targetTriple, proc, features, opt, llvm::Reloc::PIC_, std::nullopt,
+        triple, proc, features, opt, llvm::Reloc::PIC_, std::nullopt,
         llvm::CodeGenOptLevel::None)};
     // set data layout
     mod->setDataLayout(machine->createDataLayout());

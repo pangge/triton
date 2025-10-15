@@ -441,7 +441,7 @@ public:
     patterns
         .add<TMemSplitLoadPattern, TMemStoreJoinPattern, TMemLoadReducePattern,
              TMemFromSharedMemPattern, TMemToSharedMemPattern>(context);
-    if (failed(applyPatternsGreedily(m, std::move(patterns))))
+    if (failed(applyPatternsAndFoldGreedily(m, std::move(patterns))))
       signalPassFailure();
   }
 };

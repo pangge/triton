@@ -24,6 +24,20 @@ struct SimplifyControlFlow
 };
 } // namespace
 
+SmallVector<RegisteredOperationName>
+getRegisteredOperationsByDialect(MLIRContext* context, StringRef dialectName) {
+  if (dialectName.empty())
+    return {};
+
+  SmallVector<RegisteredOperationName> filteredOps;
+  for (RegisteredOperationName op : context->getRegisteredOperations()) {
+    if (op.getDialect().getNamespace() == dialectName)
+      filteredOps.push_back(op);
+  }
+
+  return filteredOps;
+}
+
 void SimplifyControlFlow::runOnOperation() {
   MLIRContext *ctx = &getContext();
   RewritePatternSet patterns(&getContext());
@@ -33,10 +47,10 @@ void SimplifyControlFlow::runOnOperation() {
       patterns);
   ctx->getLoadedDialect<cf::ControlFlowDialect>()->getCanonicalizationPatterns(
       patterns);
-  for (mlir::RegisteredOperationName op : ctx->getRegisteredOperationsByDialect(
+  for (mlir::RegisteredOperationName op : getRegisteredOperationsByDialect(ctx,
            scf::SCFDialect::getDialectNamespace()))
     op.getCanonicalizationPatterns(patterns, ctx);
-  for (mlir::RegisteredOperationName op : ctx->getRegisteredOperationsByDialect(
+  for (mlir::RegisteredOperationName op : getRegisteredOperationsByDialect(ctx,
            cf::ControlFlowDialect::getDialectNamespace()))
     op.getCanonicalizationPatterns(patterns, ctx);
   populateForOpDeadArgumentElimination(patterns);
@@ -45,5 +59,5 @@ void SimplifyControlFlow::runOnOperation() {
   // This is intended to run before AutoLayouts are resolved, in which case
   // CSEing constants can lead to additional layout conflicts.
   config.enableConstantCSE(false);
-  (void)applyPatternsGreedily(getOperation(), std::move(patterns), config);
+  (void)applyPatternsAndFoldGreedily(getOperation(), std::move(patterns), config);
 }

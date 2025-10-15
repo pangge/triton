@@ -28,7 +28,7 @@ struct Canonicalize : public gluon::impl::GluonCanonicalizeBase<Canonicalize> {
 };
 } // namespace
 
-SmallVector<RegisteredOperationName> 
+SmallVector<RegisteredOperationName>
 getRegisteredOperationsByDialect(MLIRContext* context, StringRef dialectName) {
   if (dialectName.empty())
     return {};
@@ -38,7 +38,7 @@ getRegisteredOperationsByDialect(MLIRContext* context, StringRef dialectName) {
     if (op.getDialect().getNamespace() == dialectName)
       filteredOps.push_back(op);
   }
-  
+
   return filteredOps;
 }
 
